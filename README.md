@@ -20,7 +20,6 @@ Or in my case, due to certain permissions I used:
 3. Open the chefbot.js file and locate the following lines:
 
           // Edamam API credentials
-          
           const api_id = 'YOUR_API_ID';
           const app_key = 'YOUR_APP_KEY';
 4. Replace YOUR_API_ID and YOUR_APP_KEY with your actual API credentials.  
@@ -28,6 +27,7 @@ Or in my case, due to certain permissions I used:
 **Usage...**
 
 To run the ChefBot JavaScript code, use the following command in the terminal:
+
         //Using the name of your code file
          node chefbot.js
 Once the code is running, it will start an Express server that listens on port 3000. The chatbot can be accessed through the /webhook endpoint.
