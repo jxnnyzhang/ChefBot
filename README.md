@@ -18,7 +18,9 @@ Or in my case, due to certain permissions I used:
 1. Before running the code, make sure to set up the necessary API credentials. Follow these steps:
 2. Obtain an API ID and API Key from the Edamam API website.
 3. Open the chefbot.js file and locate the following lines:
+
           // Edamam API credentials
+          
           const api_id = 'YOUR_API_ID';
           const app_key = 'YOUR_APP_KEY';
 4. Replace YOUR_API_ID and YOUR_APP_KEY with your actual API credentials.  
