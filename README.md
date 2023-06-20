@@ -51,20 +51,20 @@ ChefBot can be integrated into a website using the Dialogflow API. Follow these 
 2. Add a button or a link that triggers the ChefBot chatbot.
 3. In your HTML file, include the Dialogflow API script by adding the following code snippet within the <script> tag:
 
-<script>
-        function loadChatbot() {
-            var chatbotContainer = document.createElement('div');
-            chatbotContainer.className = 'chatbot-container';
-            var chatbotIframe = document.createElement('iframe');
-            chatbotIframe.className = 'chatbot-iframe';
-            chatbotIframe.src = 'https://console.dialogflow.com/api-client/demo/embedded/76322a98-4e88-437e-991f-d557a657b8b2?disableGoogleLogo=true&hideControls=true';
-            chatbotContainer.appendChild(chatbotIframe);
-            document.body.appendChild(chatbotContainer);
-        }
-    </script>
+            <script>
+                    function loadChatbot() {
+                        var chatbotContainer = document.createElement('div');
+                        chatbotContainer.className = 'chatbot-container';
+                        var chatbotIframe = document.createElement('iframe');
+                        chatbotIframe.className = 'chatbot-iframe';
+                        chatbotIframe.src = 'https://console.dialogflow.com/api-client/demo/embedded/76322a98-4e88-437e-991f-d557a657b8b2?disableGoogleLogo=true&hideControls=true';
+                        chatbotContainer.appendChild(chatbotIframe);
+                        document.body.appendChild(chatbotContainer);
+                    }
+                </script>
     
  4. Finally, create a button or a link that calls the loadChatbot() function when clicked:
- <button onclick="loadChatbot()">Try ChefBot</button>
+             <button onclick="loadChatbot()">Try ChefBot</button>
 Now, when users click the "Try ChefBot" button on your website, the ChefBot chatbot will be loaded and displayed.
 
 **About Page**
