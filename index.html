@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title> ChefBot</title>
+    <style>
+        body {
+            font-family: serif;
+            text-align: center;
+            background-color: #ddd0c8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin-top: 0; /* Adjust the top margin as desired */
+        }
+        h1 {
+            color: #101010;
+            margin-top: 20px;
+            margin-left: 20px; 
+        }
+        h2 {
+            position: absolute;
+            top: 425px; /* Adjust the desired top position */
+            left: 1000px; /* Adjust the desired left position */
+            color: #efebe8;
+            font-size: 24px;
+            margin-top: 5px;
+            margin-bottom: 2px; /* Reduce the margin as desired */
+        }
+        .button {
+            position: fixed;
+            top: 20px; /* Adjust the desired top position */
+            right: 20px;
+            display: inline-block;
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: transparent;
+            color: #152031;
+            text-decoration: none;
+            border: 2px solid #323232;
+            border-radius: 0;
+            transition: background-color 0.3s ease;
+        }
+        .image-container {
+            margin-top: 15px;
+            overflow-y: auto;
+            max-height: 600px; /* Adjust the maximum height as desired */
+        }
+        .small-image {
+            width: 100px; /* Adjust the width as desired */
+            height: auto; /* Maintain aspect ratio */
+        }
+        .smaller-image {
+            width: 1435px; /* Adjust the width as desired */
+            height: auto; /* Maintain aspect ratio */
+        }
+        .image-wrapper {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .image-label {
+            margin-left: 10px;
+            font-size: 20px; /* Change the font size as desired */
+            font-family: serif;
+            letter-spacing: 1px;
+        }
+        .button:hover {
+            background-color: #b6a296;
+        }
+        ul {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        li {
+            display: inline-block;
+        }
+        .about {
+            margin-right: 175px;
+        }
+        .about a {
+            text-decoration: none;
+            font-size: 20px;
+            font-family: serif;
+            color: black;
+        }
+        .message {
+            margin: 5px 0;
+            position: absolute;
+            top: 400px; /* Adjust the desired top position */
+            left: 1100px; /* Adjust the desired left position */
+            text-align: left;
+            color: #efebe8;
+        }
+        .chatbot-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .chatbot-container {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    <script>
+        function loadChatbot() {
+            var chatbotContainer = document.createElement('div');
+            chatbotContainer.className = 'chatbot-container';
+            var chatbotIframe = document.createElement('iframe');
+            chatbotIframe.className = 'chatbot-iframe';
+            chatbotIframe.src = 'https://console.dialogflow.com/api-client/demo/embedded/76322a98-4e88-437e-991f-d557a657b8b2?disableGoogleLogo=true&hideControls=true';
+            chatbotContainer.appendChild(chatbotIframe);
+            document.body.appendChild(chatbotContainer);
+        }
+    </script>
+</head>
+<body>
+    <div class="image-wrapper">
+        <img src="chefhat.png" class="small-image">
+        <h1 class="image-label">ChefBot</h1>
+    </div>
+    <div class="image-container">
+        <p class="message">Welcome to ChefBot</p>
+        <h2>Discover a World of Home Cooking, Tailored Just for You</h2>
+        <a class="button" onclick="loadChatbot()">Try ChefBot</a>
+        <img src="chefplate.jpg" class="smaller-image">
+    </div>
+    <header>
+        <nav>
+          <ul>
+            <li class="about"><a href="about.html">About</a></li>
+          </ul>
+      </nav>
+  </header>
+  <script>
+    document.getElementById("about-link").onclick = function() {
+        window.location.href = "about.html";
+    };
+  </script>
+</body>
+</html>
