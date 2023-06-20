@@ -29,7 +29,7 @@ Or in my case, due to certain permissions I used:
 To run the ChefBot JavaScript code, use the following command in the terminal:
 
         //Using the name of your code file
-         node chefbot.js
+         node recipe.js
 Once the code is running, it will start an Express server that listens on port 3000. The chatbot can be accessed through the /webhook endpoint.
 
 
@@ -42,6 +42,39 @@ To integrate ChefBot with Dialogflow, follow these steps:
 4. Save the changes in Dialogflow.
 
 Now, when users interact with your Dialogflow agent, the requests will be sent to your ChefBot code for processing, and the response will be returned to Dialogflow for presentation to the user.
+
+**Website Integration**
+
+ChefBot can be integrated into a website using the Dialogflow API. Follow these steps to add ChefBot to your website:
+
+1. Create an HTML page for your website and include the necessary styling and structure.
+2. Add a button or a link that triggers the ChefBot chatbot.
+3. In your HTML file, include the Dialogflow API script by adding the following code snippet within the <script> tag:
+
+<script>
+        function loadChatbot() {
+            var chatbotContainer = document.createElement('div');
+            chatbotContainer.className = 'chatbot-container';
+            var chatbotIframe = document.createElement('iframe');
+            chatbotIframe.className = 'chatbot-iframe';
+            chatbotIframe.src = 'https://console.dialogflow.com/api-client/demo/embedded/76322a98-4e88-437e-991f-d557a657b8b2?disableGoogleLogo=true&hideControls=true';
+            chatbotContainer.appendChild(chatbotIframe);
+            document.body.appendChild(chatbotContainer);
+        }
+    </script>
+    
+ 4. Finally, create a button or a link that calls the loadChatbot() function when clicked:
+ <button onclick="loadChatbot()">Try ChefBot</button>
+Now, when users click the "Try ChefBot" button on your website, the ChefBot chatbot will be loaded and displayed.
+
+**About Page**
+To create an "About" page for ChefBot, follow these steps:
+
+1. Create a new HTML file named about.html.
+2. Add the necessary styling and structure for the "About" page.
+3. Include any relevant information about ChefBot, such as its features, purpose, and technology stack.
+4. Customize the content of the page to suit your requirements.
+5. Link to the "About" page from your main website or navigation menu.
 
 **Contributing...**
 
