@@ -6,18 +6,26 @@
         body {
             font-family: serif;
             text-align: center;
-            background-color: #ddd0c8;
+            background-image: url('baking.jpg');
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-color: #efefef;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin-top: 0; /* Adjust the top margin as desired */
+            object-fit: cover;
         }
         h1 {
-            color: #101010;
+            color: #fbf9f9;
             margin-top: 20px;
             margin-left: 20px; 
+        }
+        .image-label a {
+            text-decoration: none;
+            color: #efefef;
         }
         .image-wrapper {
             position: absolute;
@@ -27,14 +35,24 @@
             align-items: center;
         }
         .image-label {
-            margin-left: 10px;
-            font-size: 20px; /* Change the font size as desired */
+            position: fixed;
+            font-size: 25px; /* Change the font size as desired */
             font-family: serif;
-            letter-spacing: 1px;
+            top: 0;
+            left: 70px;
+            margin-top: 35px;
+            z-index: 1;
         }
         .small-image {
-            width: 100px; /* Adjust the width as desired */
+            position: fixed;
+            width: 60px; /* Adjust the width as desired */
             height: auto; /* Maintain aspect ratio */
+            top: 0;
+            margin-top: 25px;
+            margin-right: 20px;
+            left: 20px; 
+            z-index: 1;
+            filter: invert(1);
         }
         .button {
             position: fixed;
@@ -44,9 +62,9 @@
             padding: 12px 24px;
             font-size: 18px;
             background-color: transparent;
-            color: #152031;
+            color: #efefef;
             text-decoration: none;
-            border: 2px solid #323232;
+            border: 2px solid #efefef;
             border-radius: 0;
             transition: background-color 0.3s ease;
         }
@@ -63,10 +81,6 @@
             border-radius: 10px;
             z-index: 1;
         }
-        .baking-image {
-            width: 1450px; /* Adjust the width as desired */
-            height: auto; /* Maintain aspect ratio */
-        }
         .image-container {
             position: relative;
             text-align: center;
@@ -76,39 +90,46 @@
             margin-bottom: 40px;
         }
         .disclaimer {
-            position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
             color: #fff;
-            padding: 10px;
             position: absolute;
-            top: 915px; /* Adjust the desired top position */
+            margin-bottom: 30px; /* Adjust the desired top position */
             text-align: center;
         }
-        p {
-            font-size: 16px;
+        .disclaimer p {
+            font-size: 12px; /* Adjust the font size as desired */
             margin: 0;
+        }
+        .footer {
+            color: #fff;
+            text-align: center;
+            position: fixed;
+            font-size: 12px;
+            left: 0;
+            bottom: 0;
+            width: 100%;
         }
     </style>
 </head>
 <body>
     <div class="image-wrapper">
         <img src="chefhat.png" class="small-image">
-        <h1 class="image-label">ChefBot</h1>
+        <h1 class="image-label"><a href="index.html">ChefBot</a></h1> 
     </div>
-    <div class="image-container">
-        <img src="baking.jpg" class="baking-image">
-        <div class="overlay">
-            <h1>About ChefBot</h1>
-            <p>ChefBot is an innovative recipe finding chatbot designed to provide you with personalized home cooking recipes. With ChefBot, you can explore a wide range of recipes tailored to your taste and dietary preferences. Whether you're a seasoned home cook or a beginner, ChefBot will guide you through the recipe discovery process, helping you find delicious dishes to prepare in your kitchen.</p>
-            <p>ChefBot was created as a one-stop solution for all your cooking needs. From breakfast to dinner, appetizers to desserts, ChefBot has you covered with an extensive database of recipes sourced from trusted culinary sources.</p>
-            <p>Experience the joy of cooking with ChefBot and elevate your home cooking to new heights. Try ChefBot today and embark on a culinary adventure like no other.</p>
-            </div>
-        </div>
-        <div class="disclaimer">
+    <div class="overlay">
+        <h1>About ChefBot</h1>
+        <p>ChefBot is an innovative recipe finding chatbot designed to provide you with personalized home cooking recipes. With ChefBot, you can explore a wide range of recipes tailored to your taste and dietary preferences. Whether you're a seasoned home cook or a beginner, ChefBot will guide you through the recipe discovery process, helping you find delicious dishes to prepare in your kitchen.</p>
+        <p>ChefBot was created as a one-stop solution for all your cooking needs. From breakfast to dinner, appetizers to desserts, ChefBot has you covered with an extensive database of recipes sourced from trusted culinary sources.</p>
+        <p>Experience the joy of cooking with ChefBot and elevate your home cooking to new heights. Try ChefBot today and embark on a culinary adventure like no other.</p>
+    </div>
+    <div class="disclaimer">
         <p>Please note that ChefBot is an ongoing project and is continuously being improved. While we strive for accuracy, there may still be mistakes or errors in the responses provided by the chatbot. We appreciate your understanding and patience as we work to enhance the user experience. Your feedback is valuable to us, and we are committed to making ChefBot the best recipe finding chatbot. Enjoy cooking with ChefBot!</p>
-        </div> 
+    </div> 
     <a class="button" href="index.html">Go Back</a>
+    <div class="footer">
+        <p>&copy; 2023 ChefBot. All rights reserved.</p>
+    </div>
 </body>
 </html>
