@@ -1,159 +1,230 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title> ChefBot</title>
+    <title>ChefBot</title>
     <style>
         body {
             font-family: serif;
-            text-align: center;
-            background-color: #ddd0c8;
+            margin: 0;
+            padding: 0;
+            background-color: #efebe8;
+        }
+        .header-container {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin-top: 0; /* Adjust the top margin as desired */
+            margin-top: 30px;
+            z-index: 1;
         }
-        h1 {
-            color: #101010;
-            margin-top: 20px;
-            margin-left: 20px; 
-        }
-        h2 {
-            position: absolute;
-            top: 425px; /* Adjust the desired top position */
-            left: 1000px; /* Adjust the desired left position */
-            color: #efebe8;
-            font-size: 24px;
-            margin-top: 5px;
-            margin-bottom: 2px; /* Reduce the margin as desired */
-        }
-        .button {
+        .your-image {
             position: fixed;
-            top: 20px; /* Adjust the desired top position */
-            right: 20px;
-            display: inline-block;
-            padding: 12px 24px;
-            font-size: 18px;
-            background-color: transparent;
-            color: #152031;
+            width: 60px; /* Adjust the width as desired */
+            height: auto; /* Maintain aspect ratio */
+            top: 0;
+            margin-top: 25px;
+            margin-right: 20px;
+            margin-left: 20px; 
+            z-index: 1;
+        }
+
+        .header-label {
+            position: fixed;
+            color: #101010;
+            font-size: 25px; /* Adjust the font size as desired */
+            top: 0;
+            left: 90px;
+            margin-top: 35px;
+            z-index: 1;
+        }
+        .header-label a {
             text-decoration: none;
-            border: 2px solid #323232;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
+            color: #101010;
         }
-        .image-container {
-            margin-top: 15px;
-            overflow-y: auto;
-            max-height: 600px; /* Adjust the maximum height as desired */
-        }
-        .small-image {
-            width: 100px; /* Adjust the width as desired */
-            height: auto; /* Maintain aspect ratio */
-        }
-        .smaller-image {
-            width: 1435px; /* Adjust the width as desired */
-            height: auto; /* Maintain aspect ratio */
-        }
-        .image-wrapper {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            align-items: center;
-        }
-        .image-label {
-            margin-left: 10px;
-            font-size: 20px; /* Change the font size as desired */
-            font-family: serif;
-            letter-spacing: 1px;
-        }
-        .button:hover {
-            background-color: #b6a296;
+
+        .about {
+            position: fixed;
+            top: 0;
+            right: 30px;
+            margin-top: 30px;
+            z-index: 1;
         }
         ul {
-            position: fixed;
-            top: 40px;
-            right: 40px;
             list-style-type: none;
             margin: 0;
             padding: 0;
         }
-        li {
-            display: inline-block;
-        }
-        .about {
-            margin-right: 175px;
-        }
         .about a {
+            display: inline-block;
             text-decoration: none;
-            font-size: 20px;
+            padding: 12px 24px;
+            border: 2px solid #101010;
+            font-size: 25px;
             font-family: serif;
-            color: black;
+            color: #101010;
+            font-weight: bold;
         }
-        .message {
-            margin: 5px 0;
-            position: absolute;
-            top: 400px; /* Adjust the desired top position */
-            left: 1100px; /* Adjust the desired left position */
-            text-align: left;
-            color: #efebe8;
-        }
-        .chatbot-iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .chatbot-container {
-            width: 100%;
-            height: 100%;
+        .banner {
+            background-image: url('chefplate.jpg');
+            background-repeat: no-repeat;
+            background-size: cover;
+            height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
-            z-index: 9999;
-            background-color: #fff;
+            right: 0;
+            overflow-y: scroll;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            text-align: center;
+            z-index: -1;
         }
+        .banner h1 {
+            font-size: 48px;
+            margin-bottom: 5px; 
+            text-decoration: none;
+        }
+
+        .banner p {
+            font-size: 24px;
+            margin-bottom: 5px; 
+        }
+        .content {
+            background-color: #ffffff;
+            padding: 50px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            margin-top: 100vh; /* Adjust the value to match the height of the banner */
+        }
+
+        .content h2 {
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+
+        .content p {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+        .trending-images {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: 50px;
+        }
+        .trending-image {
+            flex-basis: 300px;
+            margin: 10px;
+        }
+        .trending-image img {
+            width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        .trending-label {
+            color: #101010;
+            font-size: 15px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .recipe {
+            display: block;
+            margin: 0 auto;
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: transparent;
+            color: #101010;
+            text-decoration: none;
+            border: 2px solid #101010; /* Border color */
+            border-radius: 0; /* Remove border radius for a more rectangular shape */
+            transition: background-color 0.3s ease;
+        }
+        .recipe:hover{
+            background-color: #b6a296;
+        }
+        .footer {
+            color: #fff;
+            text-align: center;
+            position: fixed;
+            font-size: 12px;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+        }
+        df-messenger {
+      --df-messenger-bot-message: #fbf7f7;
+      --df-messenger-button-titlebar-color: #dec4c4;
+      --df-messenger-chat-background-color: #fafafa;
+      --df-messenger-font-color: #000;
+      --df-messenger-send-icon: #d7e7ee;
+      --df-messenger-user-message: #d0b3b3;
+      --df-messenger-chip-border-color: #d0d2d6;
+    }
+
+    .btn-container {
+      margin-top: 20px;
+    }
     </style>
-    <script>
-        function loadChatbot() {
-            var chatbotContainer = document.createElement('div');
-            chatbotContainer.className = 'chatbot-container';
-            var chatbotIframe = document.createElement('iframe');
-            chatbotIframe.className = 'chatbot-iframe';
-            chatbotIframe.src = 'https://console.dialogflow.com/api-client/demo/embedded/76322a98-4e88-437e-991f-d557a657b8b2?disableGoogleLogo=true&hideControls=true';
-            chatbotContainer.appendChild(chatbotIframe);
-            document.body.appendChild(chatbotContainer);
-        }
-    </script>
 </head>
 <body>
-    <div class="image-wrapper">
-        <img src="chefhat.png" class="small-image">
-        <h1 class="image-label">ChefBot</h1>
-    </div>
-    <div class="image-container">
-        <p class="message">Welcome to ChefBot</p>
-        <h2>Discover a World of Home Cooking, Tailored Just for You</h2>
-        <a class="button" onclick="loadChatbot()">Try ChefBot</a>
-        <img src="chefplate.jpg" class="smaller-image">
+    <div class="extended-page">
+        <div class="header-container">
+            <img src="chefhat.png" class="your-image">
+            <h1 class="header-label"><a href="index.html">ChefBot</a></h1> 
+        </div>
     </div>
     <header>
         <nav>
-          <ul>
-            <li class="about"><a href="about.html">About</a></li>
-          </ul>
-      </nav>
-  </header>
-  <script>
-    document.getElementById("about-link").onclick = function() {
-        window.location.href = "about.html";
-    };
-  </script>
+            <ul>
+                <li class="about"><a href="about.html">About</a></li>
+            </ul>
+        </nav>
+    </header>
+    <div class="banner">
+        <h1>Welcome to ChefBot</h1>
+        <p>Discover a World of Home Cooking, Tailored Just for You</p>
+    </div>
+
+    <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
+    <df-messenger
+      chat-title="ChefBot"
+      agent-id="76322a98-4e88-437e-991f-d557a657b8b2"
+      language-code="en"
+      chat-icon="chefhat.png" 
+      send-feedback="true" 
+      endpoint="https://chefbot.s3.us-east-2.amazonaws.com/index.html" 
+      placeholder="Type your message here..."
+      suggestion-chips="Welcome, Menu, Help" 
+    ></df-messenger>
+      
+    <div class="content">
+        <h2>Trending Recipes</h2>
+        <p>Explore our collection of popular recipes.</p>
+        <div class="trending-images">
+            <div class="trending-image">
+                <img src="pokebowl.jpeg">
+                <div class="trending-label">
+                    <p>Poke bowl with pickled garlic and seaweed</p>
+                </div>
+                <a class="recipe" href="https://www.delicious.com.au/recipes/poke-bowl-pickled-garlic-seaweed/ypunS37M" target="_blank">View Recipe</a>
+            </div>
+            <div class="trending-image">
+                <img src="carneasada.jpeg">
+                <div class="trending-label">
+                    <p>Carne asada with pico de gallo</p>
+                </div>
+                <a class="recipe" href="https://www.taste.com.au/recipes/carne-asada-pico-de-gallo/677cae67-5cb9-420e-b4de-3d8088619ccc" target="_blank">View Recipe</a>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <p>&copy; 2023 ChefBot. All rights reserved.</p>
+    </div>
+</body>
+</html>
+
 </body>
 </html>
