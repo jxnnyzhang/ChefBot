@@ -69,6 +69,7 @@
             background-image: url('chefplate.jpg');
             background-repeat: no-repeat;
             background-size: cover;
+            background-position: center;
             height: 100vh;
             position: fixed;
             top: 0;
@@ -81,6 +82,12 @@
             justify-content: center;
             text-align: center;
             z-index: -1;
+            transition: background-size 0.5s ease;
+        }
+        /* Add a class to apply the zoom-in effect on scroll */
+        .banner.zoom {
+            background-size: 150%;
+            background-position: center;
         }
         .banner h1 {
             font-size: 48px;
@@ -226,8 +233,14 @@
     <div class="footer">
         <p>&copy; 2023 ChefBot. All rights reserved.</p>
     </div>
+    <script>
+        const banner = document.querySelector('.banner');
+
+        window.addEventListener('scroll', () => {
+            const scrollHeight = window.pageYOffset;
+            banner.style.backgroundSize = `${100 + scrollHeight / 5}%`;
+        });
+    </script>
 </body>
 </html>
 
-</body>
-</html>
