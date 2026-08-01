@@ -11,7 +11,7 @@
 
   // Set this to your deployed Worker URL (see README.md "Live recipes via
   // Edamam"). Left as a placeholder, ChefBot just uses the local dataset.
-  var EDAMAM_PROXY_URL = 'https://YOUR-WORKER-SUBDOMAIN.workers.dev';
+  var EDAMAM_PROXY_URL = 'https://chefbot-recipe-proxy.jennyzhang893.workers.dev';
 
   function isProxyConfigured() {
     return typeof EDAMAM_PROXY_URL === 'string' && EDAMAM_PROXY_URL.indexOf('YOUR-WORKER-SUBDOMAIN') === -1;

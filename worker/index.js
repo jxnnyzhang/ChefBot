@@ -58,11 +58,17 @@ export default {
     edamamUrl.searchParams.set('app_id', env.EDAMAM_APP_ID);
     edamamUrl.searchParams.set('app_key', env.EDAMAM_APP_KEY);
 
+    // Some Edamam plans reject requests that include Edamam-Account-User at
+    // all ("This app does not support users"), so only send it if explicitly
+    // configured via the EDAMAM_ACCOUNT_USER secret.
+    const edamamHeaders = {};
+    if (env.EDAMAM_ACCOUNT_USER) {
+      edamamHeaders['Edamam-Account-User'] = env.EDAMAM_ACCOUNT_USER;
+    }
+
     let edamamResp;
     try {
-      edamamResp = await fetch(edamamUrl.toString(), {
-        headers: { 'Edamam-Account-User': env.EDAMAM_ACCOUNT_USER || 'chefbot-site' }
-      });
+      edamamResp = await fetch(edamamUrl.toString(), { headers: edamamHeaders });
     } catch (err) {
       return json({ error: 'Failed to reach Edamam' }, 502, origin);
     }
