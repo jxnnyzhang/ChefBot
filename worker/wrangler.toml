@@ -1,0 +1,8 @@
+name = "chefbot-recipe-proxy"
+main = "index.js"
+compatibility_date = "2026-08-01"
+
+# Secrets (never put these here — set via `wrangler secret put`):
+#   EDAMAM_APP_ID
+#   EDAMAM_APP_KEY
+#   EDAMAM_ACCOUNT_USER   (optional, defaults to "chefbot-site")

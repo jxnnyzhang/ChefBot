@@ -1,6 +1,6 @@
 # ChefBot
 
-ChefBot is a small recipe-finding chatbot. It runs entirely as a static site — no server, no API keys, no build step — so it can be hosted directly on GitHub Pages.
+ChefBot is a small recipe-finding chatbot. The site itself is fully static — no build step — so it hosts directly on GitHub Pages. Live recipe search is powered by the Edamam Recipe API through a small Cloudflare Worker proxy (see below); ChefBot works without it too, using a local recipe dataset as a fallback.
 
 ## How it works
 
@@ -8,10 +8,41 @@ ChefBot is a small recipe-finding chatbot. It runs entirely as a static site —
 - `about.html` — the about page.
 - `chatbot.js` — all of the chatbot logic:
   - **Small talk**: recognizes greetings ("hi", "hello"), identity questions ("who are you?"), capability questions ("what do you do?"), thanks, and goodbyes.
-  - **Recipe matching**: everything else is treated as a list of ingredients. Ingredients are normalized (plurals, common synonyms like "tomatoes" → "tomato") and matched against a hand-curated recipe dataset using fuzzy string matching (Levenshtein distance), so small typos like "chiken" still match "chicken".
-  - Recipes are scored by how many of your ingredients they use and returned as the top 3 matches, each with what you have, what you're missing, and short instructions.
+  - **Recipe matching**: everything else is treated as a list of ingredients. Ingredients are normalized (plurals, common synonyms like "tomatoes" → "tomato").
+  - If `EDAMAM_PROXY_URL` at the top of `chatbot.js` is set, ChefBot queries the Worker proxy for live Edamam results first, matching returned ingredient lines against what you listed.
+  - If the proxy isn't configured (or the request fails/times out), ChefBot falls back to a small hand-curated local dataset, matched with fuzzy string matching (Levenshtein distance) so small typos like "chiken" still match "chicken".
+- `worker/index.js` — the Cloudflare Worker that proxies requests to Edamam. It holds the Edamam credentials as Worker secrets so they never appear in this repo or in the site's source.
 
-There's no backend and no external API calls, so there are no credentials to manage or expose.
+## Live recipes via Edamam
+
+GitHub Pages can only serve static files — it can't hide a secret. Any API key placed directly in `chatbot.js` would be visible to anyone who opens dev tools. The Worker in `worker/` solves this: it's a separate, tiny piece of server-side code (free to run) that holds your Edamam credentials, and the browser talks to *it* instead of Edamam directly.
+
+**1. Get Edamam credentials**
+- Sign up free at [developer.edamam.com](https://developer.edamam.com), create an application for the **Recipe Search API**, and note your Application ID and Application Key.
+
+**2. Deploy the Worker** (free Cloudflare account required)
+```
+npm install -g wrangler
+cd worker
+wrangler login
+wrangler deploy
+wrangler secret put EDAMAM_APP_ID
+wrangler secret put EDAMAM_APP_KEY
+```
+`wrangler deploy` prints your Worker's URL, something like `https://chefbot-recipe-proxy.<your-subdomain>.workers.dev`.
+
+**3. Point the site at it**
+
+In `chatbot.js`, set:
+```js
+var EDAMAM_PROXY_URL = 'https://chefbot-recipe-proxy.<your-subdomain>.workers.dev';
+```
+
+**4. Update allowed origins**
+
+`worker/index.js` only accepts requests from an allow-list (`ALLOWED_ORIGINS`) to stop other sites from riding on your Edamam quota. It's pre-set to `https://jxnnyzhang.github.io` and `http://localhost:8000` — update it if your Pages URL differs.
+
+Commit and push; the live site will now show real Edamam recipes when available, still falling back to the local dataset if the Worker is ever unreachable.
 
 ## Running locally
 

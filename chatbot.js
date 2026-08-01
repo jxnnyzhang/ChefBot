@@ -1,12 +1,24 @@
 /*
  * ChefBot — a small client-side chatbot.
- * No backend, no API keys: everything runs in the browser so it works on GitHub Pages.
+ * No backend of its own: small talk and ingredient matching run entirely
+ * in the browser. Live recipe lookups go through a Cloudflare Worker proxy
+ * (see worker/) that holds the Edamam API credentials server-side, so no
+ * secret ever ships in this file. If the proxy is unreachable or not yet
+ * configured, ChefBot falls back to a small local recipe dataset.
  */
 (function () {
   'use strict';
 
+  // Set this to your deployed Worker URL (see README.md "Live recipes via
+  // Edamam"). Left as a placeholder, ChefBot just uses the local dataset.
+  var EDAMAM_PROXY_URL = 'https://YOUR-WORKER-SUBDOMAIN.workers.dev';
+
+  function isProxyConfigured() {
+    return typeof EDAMAM_PROXY_URL === 'string' && EDAMAM_PROXY_URL.indexOf('YOUR-WORKER-SUBDOMAIN') === -1;
+  }
+
   // ---------------------------------------------------------------------
-  // Recipe data
+  // Recipe data (fallback, used when the live API is unavailable)
   // ---------------------------------------------------------------------
   var RECIPES = [
     { name: 'Spaghetti Aglio e Olio', time: '20 min', popularity: 9,
@@ -84,12 +96,59 @@
     { name: 'Poke Bowl with Pickled Garlic and Seaweed', time: '25 min', popularity: 8,
       ingredients: ['rice', 'salmon', 'garlic', 'seaweed', 'soy sauce', 'cucumber'],
       instructions: 'Serve seasoned rice topped with cubed salmon, pickled garlic, seaweed, and cucumber, drizzled with soy sauce.',
+      image: 'pokebowl.jpeg',
       link: 'https://www.delicious.com.au/recipes/poke-bowl-pickled-garlic-seaweed/ypunS37M' },
     { name: 'Carne Asada with Pico de Gallo', time: '30 min', popularity: 8,
       ingredients: ['beef', 'lime', 'garlic', 'tomato', 'onion', 'cilantro'],
       instructions: 'Marinate beef in lime and garlic, grill and slice thin, then top with a fresh pico de gallo of tomato, onion, and cilantro.',
+      image: 'carneasada.jpeg',
       link: 'https://www.taste.com.au/recipes/carne-asada-pico-de-gallo/677cae67-5cb9-420e-b4de-3d8088619ccc' }
   ];
+
+  // ---------------------------------------------------------------------
+  // Live recipe lookup via the Cloudflare Worker proxy
+  // ---------------------------------------------------------------------
+  function fetchLiveRecipes(tokens) {
+    if (!isProxyConfigured() || typeof fetch !== 'function') return Promise.resolve(null);
+
+    var query = tokens.join(' ');
+    var controller = (typeof AbortController === 'function') ? new AbortController() : null;
+    var timer = controller && setTimeout(function () { controller.abort(); }, 6000);
+    var opts = controller ? { signal: controller.signal } : {};
+
+    return fetch(EDAMAM_PROXY_URL + '?q=' + encodeURIComponent(query), opts)
+      .then(function (resp) {
+        if (timer) clearTimeout(timer);
+        if (!resp.ok) throw new Error('proxy responded with ' + resp.status);
+        return resp.json();
+      })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.recipes)) return null;
+        var mapped = data.recipes.map(function (r) {
+          var matched = [];
+          var missing = [];
+          (r.ingredients || []).forEach(function (line) {
+            var lower = String(line).toLowerCase();
+            var hit = tokens.some(function (t) { return fuzzyIncludes(t, lower); });
+            (hit ? matched : missing).push(line);
+          });
+          return {
+            name: r.name,
+            time: r.time ? Math.round(r.time) + ' min' : null,
+            image: r.image,
+            link: r.url,
+            source: r.source,
+            matched: matched,
+            missing: missing.slice(0, 6)
+          };
+        });
+        return mapped
+          .filter(function (r) { return r.matched.length > 0; })
+          .sort(function (a, b) { return b.matched.length - a.matched.length; })
+          .slice(0, 3);
+      })
+      .catch(function () { return null; });
+  }
 
   // ---------------------------------------------------------------------
   // Ingredient normalization
@@ -250,41 +309,69 @@
     return out;
   }
 
-  function formatRecipeReply(results) {
-    var lines = [];
-    lines.push(results.length === 1 ? "Here's a recipe you can make:" : "Here are a few recipes you can make:");
-    results.forEach(function (r) {
-      var recipe = r.recipe;
-      var text = '🍽️ **' + recipe.name + '** (' + recipe.time + ')\n' +
-        'Uses what you have: ' + r.matched.join(', ') + '.';
-      if (r.missing.length) text += '\nYou might also need: ' + r.missing.join(', ') + '.';
-      text += '\n' + recipe.instructions;
-      if (recipe.link) text += '\nFull recipe: ' + recipe.link;
-      lines.push(text);
+  function textItem(text) { return { type: 'text', text: text }; }
+
+  function recipeItemsFromLocal(results) {
+    return results.map(function (r) {
+      return {
+        type: 'recipe',
+        recipe: {
+          name: r.recipe.name,
+          time: r.recipe.time,
+          image: r.recipe.image,
+          link: r.recipe.link,
+          matched: r.matched,
+          missing: r.missing,
+          instructions: r.recipe.instructions
+        }
+      };
     });
-    return lines;
+  }
+
+  function recipeItemsFromLive(liveResults) {
+    return liveResults.map(function (r) {
+      return {
+        type: 'recipe',
+        recipe: {
+          name: r.name,
+          time: r.time,
+          image: r.image,
+          link: r.link,
+          matched: r.matched,
+          missing: r.missing,
+          instructions: r.source ? 'From ' + r.source + '.' : null
+        }
+      };
+    });
   }
 
   function respond(userText) {
     var intent = detectIntent(userText);
     switch (intent) {
-      case 'empty': return [EMPTY];
-      case 'greeting': return [pick(GREETINGS)];
-      case 'identity': return [IDENTITY];
-      case 'capability': return [CAPABILITY];
-      case 'thanks': return [THANKS];
-      case 'bye': return [BYE];
+      case 'empty': return Promise.resolve([textItem(EMPTY)]);
+      case 'greeting': return Promise.resolve([textItem(pick(GREETINGS))]);
+      case 'identity': return Promise.resolve([textItem(IDENTITY)]);
+      case 'capability': return Promise.resolve([textItem(CAPABILITY)]);
+      case 'thanks': return Promise.resolve([textItem(THANKS)]);
+      case 'bye': return Promise.resolve([textItem(BYE)]);
       case 'ingredients':
       default:
         var tokens = extractIngredients(userText);
         if (tokens.length === 0) {
-          return ["I didn't catch any ingredients in that. Try something like \"" + sampleIngredients().join(', ') + '".'];
+          return Promise.resolve([textItem("I didn't catch any ingredients in that. Try something like \"" + sampleIngredients().join(', ') + '".')]);
         }
-        var results = findRecipes(tokens);
-        if (results.length === 0) {
-          return [pick(NO_MATCH_INTRO) + ' Try other ingredients, like "' + sampleIngredients().join(', ') + '", or list a few more things you have.'];
-        }
-        return formatRecipeReply(results);
+        return fetchLiveRecipes(tokens).then(function (live) {
+          if (live && live.length) {
+            var intro = live.length === 1 ? "Here's a recipe you can make:" : "Here are a few recipes you can make:";
+            return [textItem(intro)].concat(recipeItemsFromLive(live));
+          }
+          var results = findRecipes(tokens);
+          if (results.length === 0) {
+            return [textItem(pick(NO_MATCH_INTRO) + ' Try other ingredients, like "' + sampleIngredients().join(', ') + '", or list a few more things you have.')];
+          }
+          var intro2 = results.length === 1 ? "Here's a recipe you can make:" : "Here are a few recipes you can make:";
+          return [textItem(intro2)].concat(recipeItemsFromLocal(results));
+        });
     }
   }
 
@@ -311,6 +398,49 @@
     container.scrollTop = container.scrollHeight;
   }
 
+  function isHttpUrl(str) {
+    return typeof str === 'string' && /^https?:\/\//.test(str);
+  }
+
+  function addRecipeCard(container, recipe) {
+    var card = document.createElement('div');
+    card.className = 'chat-bubble bot recipe-card';
+
+    var html = '';
+    if (typeof recipe.image === 'string' && recipe.image) {
+      html += '<img class="recipe-thumb" src="' + escapeHtml(recipe.image) + '" alt="' + escapeHtml(recipe.name || '') + '">';
+    }
+    html += '<div class="recipe-card-body">';
+    html += '<strong>' + escapeHtml(recipe.name || 'Recipe') + '</strong>';
+    if (recipe.time) html += ' (' + escapeHtml(recipe.time) + ')';
+    html += '<br>';
+    if (recipe.matched && recipe.matched.length) {
+      html += 'Uses what you have: ' + escapeHtml(recipe.matched.join(', ')) + '.<br>';
+    }
+    if (recipe.missing && recipe.missing.length) {
+      html += 'You might also need: ' + escapeHtml(recipe.missing.join(', ')) + '.<br>';
+    }
+    if (recipe.instructions) {
+      html += renderMessageText(recipe.instructions) + '<br>';
+    }
+    if (isHttpUrl(recipe.link)) {
+      html += '<a href="' + escapeHtml(recipe.link) + '" target="_blank" rel="noopener">Full recipe</a>';
+    }
+    html += '</div>';
+
+    card.innerHTML = html;
+    container.appendChild(card);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function renderItem(container, item) {
+    if (item.type === 'recipe') {
+      addRecipeCard(container, item.recipe);
+    } else {
+      addMessage(container, item.text, 'bot');
+    }
+  }
+
   function init() {
     var form = document.getElementById('chat-form');
     var input = document.getElementById('chat-input');
@@ -325,10 +455,9 @@
       if (!text) return;
       addMessage(messages, text, 'user');
       input.value = '';
-      setTimeout(function () {
-        var replies = respond(text);
-        replies.forEach(function (r) { addMessage(messages, r, 'bot'); });
-      }, 300);
+      respond(text).then(function (items) {
+        items.forEach(function (item) { renderItem(messages, item); });
+      });
     });
   }
 
