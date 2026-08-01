@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChefBot</title>
     <style>
         body {
@@ -22,7 +24,7 @@
             top: 0;
             margin-top: 25px;
             margin-right: 20px;
-            margin-left: 20px; 
+            margin-left: 20px;
             z-index: 1;
         }
 
@@ -71,35 +73,40 @@
             background-size: cover;
             background-position: center;
             height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            overflow-y: scroll;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            z-index: -1;
         }
         .banner h1 {
             font-size: 48px;
-            margin-bottom: 5px; 
+            margin-bottom: 5px;
             text-decoration: none;
         }
 
         .banner p {
             font-size: 24px;
-            margin-bottom: 5px; 
+            margin-bottom: 20px;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 14px 28px;
+            font-size: 20px;
+            font-family: serif;
+            background-color: rgba(255, 255, 255, 0.85);
+            color: #101010;
+            text-decoration: none;
+            border: 2px solid #101010;
+            transition: background-color 0.3s ease;
+        }
+        .cta-button:hover {
+            background-color: #b6a296;
         }
         .content {
             background-color: #ffffff;
             padding: 50px;
             text-align: center;
-            position: relative;
-            z-index: 1;
-            margin-top: 100vh; /* Adjust the value to match the height of the banner */
         }
 
         .content h2 {
@@ -150,34 +157,108 @@
             background-color: #b6a296;
         }
         .footer {
-            color: #fff;
+            color: #101010;
             text-align: center;
-            position: fixed;
             font-size: 12px;
-            left: 0;
-            bottom: 0;
-            width: 100%;
+            padding: 20px 0;
+            background-color: #efebe8;
         }
-        df-messenger {
-      --df-messenger-bot-message: #fbf7f7;
-      --df-messenger-button-titlebar-color: #dec4c4;
-      --df-messenger-chat-background-color: #fafafa;
-      --df-messenger-font-color: #000;
-      --df-messenger-send-icon: #d7e7ee;
-      --df-messenger-user-message: #d0b3b3;
-      --df-messenger-chip-border-color: #d0d2d6;
-    }
 
-    .btn-container {
-      margin-top: 20px;
-    }
+        /* ---- Chat widget ---- */
+        .chat-section {
+            background-color: #efebe8;
+            padding: 60px 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .chat-widget {
+            width: 100%;
+            max-width: 560px;
+            background-color: #ffffff;
+            border: 2px solid #101010;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-bottom: 2px solid #101010;
+        }
+        .chat-header-icon {
+            font-size: 28px;
+        }
+        .chat-header h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+        .chat-header p {
+            margin: 2px 0 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .chat-messages {
+            padding: 16px 20px;
+            height: 380px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+        }
+        .chat-bubble {
+            max-width: 85%;
+            padding: 10px 14px;
+            font-size: 16px;
+            line-height: 1.4;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+        }
+        .chat-bubble.bot {
+            align-self: flex-start;
+            background-color: #f5f1ee;
+        }
+        .chat-bubble.user {
+            align-self: flex-end;
+            background-color: #b6a296;
+            border-color: #101010;
+        }
+        .chat-input-row {
+            display: flex;
+            border-top: 2px solid #101010;
+        }
+        .chat-input-row input {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            font-family: serif;
+            border: none;
+            outline: none;
+        }
+        .chat-input-row button {
+            padding: 14px 24px;
+            font-size: 16px;
+            font-family: serif;
+            font-weight: bold;
+            border: none;
+            border-left: 2px solid #101010;
+            background-color: #b6a296;
+            cursor: pointer;
+        }
+        .chat-input-row button:hover {
+            background-color: #a08d80;
+        }
+        @media (max-width: 480px) {
+            .chat-messages { height: 300px; }
+        }
     </style>
 </head>
 <body>
     <div class="extended-page">
         <div class="header-container">
-            <img src="chefhat.png" class="your-image">
-            <h1 class="header-label"><a href="index.html">ChefBot</a></h1> 
+            <img src="chefhat.png" class="your-image" alt="ChefBot chef hat logo">
+            <h1 class="header-label"><a href="index.html">ChefBot</a></h1>
         </div>
     </div>
     <header>
@@ -190,43 +271,49 @@
     <div class="banner">
         <h1>Welcome to ChefBot</h1>
         <p>Discover a World of Home Cooking, Tailored Just for You</p>
+        <a href="#chat" class="cta-button">Try ChefBot</a>
     </div>
 
-    <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
-    <df-messenger
-      chat-title="ChefBot"
-      agent-id="76322a98-4e88-437e-991f-d557a657b8b2"
-      language-code="en"
-      chat-icon="chefhat.png" 
-      send-feedback="true" 
-      endpoint="https://chefbot.s3.us-east-2.amazonaws.com/index.html" 
-      placeholder="Type your message here..."
-      suggestion-chips="Welcome, Menu, Help" 
-    ></df-messenger>
-      
+    <section class="chat-section" id="chat">
+        <div class="chat-widget">
+            <div class="chat-header">
+                <span class="chat-header-icon">🍳</span>
+                <div>
+                    <h2>Chat with ChefBot</h2>
+                    <p>List ingredients you have, or just say hi</p>
+                </div>
+            </div>
+            <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+            <form id="chat-form" class="chat-input-row">
+                <input id="chat-input" type="text" autocomplete="off" placeholder="e.g. chicken, garlic, lemon" aria-label="Message ChefBot" />
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </section>
+
     <div class="content">
         <h2>Trending Recipes</h2>
         <p>Explore our collection of popular recipes.</p>
         <div class="trending-images">
             <div class="trending-image">
-                <img src="pokebowl.jpeg">
+                <img src="pokebowl.jpeg" alt="Poke bowl with pickled garlic and seaweed">
                 <div class="trending-label">
                     <p>Poke bowl with pickled garlic and seaweed</p>
                 </div>
-                <a class="recipe" href="https://www.delicious.com.au/recipes/poke-bowl-pickled-garlic-seaweed/ypunS37M" target="_blank">View Recipe</a>
+                <a class="recipe" href="https://www.delicious.com.au/recipes/poke-bowl-pickled-garlic-seaweed/ypunS37M" target="_blank" rel="noopener">View Recipe</a>
             </div>
             <div class="trending-image">
-                <img src="carneasada.jpeg">
+                <img src="carneasada.jpeg" alt="Carne asada with pico de gallo">
                 <div class="trending-label">
                     <p>Carne asada with pico de gallo</p>
                 </div>
-                <a class="recipe" href="https://www.taste.com.au/recipes/carne-asada-pico-de-gallo/677cae67-5cb9-420e-b4de-3d8088619ccc" target="_blank">View Recipe</a>
+                <a class="recipe" href="https://www.taste.com.au/recipes/carne-asada-pico-de-gallo/677cae67-5cb9-420e-b4de-3d8088619ccc" target="_blank" rel="noopener">View Recipe</a>
             </div>
         </div>
     </div>
     <div class="footer">
-        <p>&copy; 2023 ChefBot. All rights reserved.</p>
+        <p>&copy; 2026 ChefBot. All rights reserved.</p>
     </div>
+    <script src="chatbot.js"></script>
 </body>
 </html>
-
