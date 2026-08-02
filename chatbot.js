@@ -96,12 +96,10 @@
     { name: 'Poke Bowl with Pickled Garlic and Seaweed', time: '25 min', popularity: 8,
       ingredients: ['rice', 'salmon', 'garlic', 'seaweed', 'soy sauce', 'cucumber'],
       instructions: 'Serve seasoned rice topped with cubed salmon, pickled garlic, seaweed, and cucumber, drizzled with soy sauce.',
-      image: 'pokebowl.jpeg',
       link: 'https://www.delicious.com.au/recipes/poke-bowl-pickled-garlic-seaweed/ypunS37M' },
     { name: 'Carne Asada with Pico de Gallo', time: '30 min', popularity: 8,
       ingredients: ['beef', 'lime', 'garlic', 'tomato', 'onion', 'cilantro'],
       instructions: 'Marinate beef in lime and garlic, grill and slice thin, then top with a fresh pico de gallo of tomato, onion, and cilantro.',
-      image: 'carneasada.jpeg',
       link: 'https://www.taste.com.au/recipes/carne-asada-pico-de-gallo/677cae67-5cb9-420e-b4de-3d8088619ccc' }
   ];
 
@@ -135,7 +133,6 @@
           return {
             name: r.name,
             time: r.time ? Math.round(r.time) + ' min' : null,
-            image: r.image,
             link: r.url,
             source: r.source,
             matched: matched,
@@ -311,6 +308,10 @@
 
   function textItem(text) { return { type: 'text', text: text }; }
 
+  function hostnameOf(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return null; }
+  }
+
   function recipeItemsFromLocal(results) {
     return results.map(function (r) {
       return {
@@ -318,8 +319,8 @@
         recipe: {
           name: r.recipe.name,
           time: r.recipe.time,
-          image: r.recipe.image,
           link: r.recipe.link,
+          source: r.recipe.link ? hostnameOf(r.recipe.link) : null,
           matched: r.matched,
           missing: r.missing,
           instructions: r.recipe.instructions
@@ -335,11 +336,11 @@
         recipe: {
           name: r.name,
           time: r.time,
-          image: r.image,
           link: r.link,
+          source: r.source || (r.link ? hostnameOf(r.link) : null),
           matched: r.matched,
           missing: r.missing,
-          instructions: r.source ? 'From ' + r.source + '.' : null
+          instructions: null
         }
       };
     });
@@ -406,12 +407,7 @@
     var card = document.createElement('div');
     card.className = 'chat-bubble bot recipe-card';
 
-    var html = '';
-    if (typeof recipe.image === 'string' && recipe.image) {
-      html += '<img class="recipe-thumb" src="' + escapeHtml(recipe.image) + '" alt="' + escapeHtml(recipe.name || '') + '">';
-    }
-    html += '<div class="recipe-card-body">';
-    html += '<strong>' + escapeHtml(recipe.name || 'Recipe') + '</strong>';
+    var html = '<strong>' + escapeHtml(recipe.name || 'Recipe') + '</strong>';
     if (recipe.time) html += ' (' + escapeHtml(recipe.time) + ')';
     html += '<br>';
     if (recipe.matched && recipe.matched.length) {
@@ -424,9 +420,9 @@
       html += renderMessageText(recipe.instructions) + '<br>';
     }
     if (isHttpUrl(recipe.link)) {
-      html += '<a href="' + escapeHtml(recipe.link) + '" target="_blank" rel="noopener">Full recipe</a>';
+      var label = recipe.source ? 'View recipe on ' + recipe.source : 'View full recipe';
+      html += '<a class="recipe-link" href="' + escapeHtml(recipe.link) + '" target="_blank" rel="noopener">' + escapeHtml(label) + ' ↗</a>';
     }
-    html += '</div>';
 
     card.innerHTML = html;
     container.appendChild(card);
@@ -441,7 +437,40 @@
     }
   }
 
+  function initOverlay() {
+    var overlay = document.getElementById('chat-overlay');
+    var openBtn = document.getElementById('open-chat-btn');
+    var closeBtn = document.getElementById('back-home-btn');
+    var input = document.getElementById('chat-input');
+    if (!overlay || !openBtn || !closeBtn) return;
+
+    function openChat() {
+      overlay.classList.add('open');
+      document.body.classList.add('chat-open');
+      if (input) setTimeout(function () { input.focus(); }, 200);
+    }
+
+    function closeChat() {
+      overlay.classList.remove('open');
+      document.body.classList.remove('chat-open');
+    }
+
+    openBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      openChat();
+    });
+    closeBtn.addEventListener('click', closeChat);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeChat();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlay.classList.contains('open')) closeChat();
+    });
+  }
+
   function init() {
+    initOverlay();
+
     var form = document.getElementById('chat-form');
     var input = document.getElementById('chat-input');
     var messages = document.getElementById('chat-messages');

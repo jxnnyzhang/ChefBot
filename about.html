@@ -5,131 +5,156 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About ChefBot</title>
     <style>
+        :root {
+            --bg: #faf5f0;
+            --surface: #ffffff;
+            --text: #201a17;
+            --text-muted: #6b615a;
+            --accent: #c9704f;
+            --accent-dark: #a85a3d;
+            --border: rgba(32, 26, 23, 0.08);
+            --radius: 16px;
+            --shadow: 0 1px 2px rgba(32, 26, 23, 0.05), 0 12px 28px rgba(32, 26, 23, 0.08);
+        }
+        * { box-sizing: border-box; }
         body {
-            font-family: serif;
-            text-align: center;
-            background-image: url('baking.jpg');
-            background-repeat: no-repeat;
-            background-size: cover;
-            background-color: #efefef;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+        }
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin-top: 0; /* Adjust the top margin as desired */
-            object-fit: cover;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(250, 245, 240, 0.85);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
         }
-        h1 {
-            color: #fbf9f9;
-            margin-top: 20px;
-            margin-left: 20px;
-        }
-        .image-label a {
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 22px;
+            font-weight: 700;
             text-decoration: none;
-            color: #efefef;
+            color: var(--text);
         }
-        .image-wrapper {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            display: flex;
-            align-items: center;
+        .brand-icon { font-size: 26px; }
+        .nav-link {
+            display: inline-block;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            border: 1px solid var(--border);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
-        .image-label {
-            position: fixed;
-            font-size: 25px; /* Change the font size as desired */
-            font-family: serif;
-            top: 0;
-            left: 70px;
-            margin-top: 35px;
-            z-index: 1;
+        .nav-link:hover {
+            background-color: var(--surface);
+            border-color: var(--accent);
         }
-        .small-image {
-            position: fixed;
-            width: 60px; /* Adjust the width as desired */
-            height: auto; /* Maintain aspect ratio */
-            top: 0;
-            margin-top: 25px;
-            margin-right: 20px;
-            left: 20px;
-            z-index: 1;
-            filter: invert(1);
+        .hero {
+            background: linear-gradient(135deg, var(--accent), #e2a56d 65%, #eec48f);
+            color: #fff;
+            padding: 56px 24px 90px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: clamp(30px, 4.5vw, 44px);
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .panel-wrap {
+            max-width: 720px;
+            margin: -60px auto 60px;
+            padding: 0 24px;
+        }
+        .panel {
+            background-color: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 40px;
+        }
+        .panel p {
+            font-size: 17px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin: 0 0 20px;
+        }
+        .panel p:last-child { margin-bottom: 0; }
+        .disclaimer {
+            max-width: 720px;
+            margin: 0 auto 40px;
+            padding: 0 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .back-wrap {
+            text-align: center;
+            padding-bottom: 60px;
         }
         .button {
-            position: fixed;
-            top: 20px; /* Adjust the desired top position */
-            right: 20px;
             display: inline-block;
-            padding: 12px 24px;
-            font-size: 18px;
-            background-color: transparent;
-            color: #efefef;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: inherit;
+            background-color: var(--surface);
+            color: var(--text);
             text-decoration: none;
-            border: 2px solid #efefef;
-            border-radius: 0;
-            transition: background-color 0.3s ease;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
         }
         .button:hover {
-            background-color: #b6a296;
-        }
-        .overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 1;
-        }
-        .image-container {
-            position: relative;
-            text-align: center;
-            margin-top: 120px;
-            overflow-y: auto;
-            max-height: 900px; /* Adjust the maximum height as desired */
-            margin-bottom: 40px;
-        }
-        .disclaimer {
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            color: #fff;
-            position: absolute;
-            margin-bottom: 30px; /* Adjust the desired top position */
-            text-align: center;
-        }
-        .disclaimer p {
-            font-size: 12px; /* Adjust the font size as desired */
-            margin: 0;
+            border-color: var(--accent);
+            background-color: #f4ede6;
         }
         .footer {
-            color: #fff;
+            color: var(--text-muted);
             text-align: center;
-            position: fixed;
-            font-size: 12px;
-            left: 0;
-            bottom: 0;
-            width: 100%;
+            font-size: 13px;
+            padding: 0 0 32px;
         }
     </style>
 </head>
 <body>
-    <div class="image-wrapper">
-        <img src="chefhat.png" class="small-image" alt="ChefBot chef hat logo">
-        <h1 class="image-label"><a href="index.html">ChefBot</a></h1>
-    </div>
-    <div class="overlay">
+    <header class="topbar">
+        <a href="index.html" class="brand"><span class="brand-icon">🍳</span> ChefBot</a>
+        <a href="index.html" class="nav-link">Home</a>
+    </header>
+
+    <section class="hero">
         <h1>About ChefBot</h1>
-        <p>ChefBot is a recipe-finding chatbot that helps you figure out what to cook with what you already have. Tell it a few ingredients from your fridge or pantry and it matches them against a curated collection of popular recipes &mdash; typos and all, thanks to fuzzy matching.</p>
-        <p>ChefBot runs entirely in your browser: no server, no accounts, no tracking. Just say hi, ask what it can do, or list your ingredients to get started.</p>
-        <p>Experience the joy of cooking with ChefBot and elevate your home cooking to new heights. Try ChefBot today and embark on a culinary adventure like no other.</p>
+    </section>
+
+    <div class="panel-wrap">
+        <div class="panel">
+            <p>ChefBot is a recipe-finding chatbot that helps you figure out what to cook with what you already have. Tell it a few ingredients from your fridge or pantry and it matches them against real recipes &mdash; typos and all, thanks to fuzzy matching.</p>
+            <p>ChefBot runs entirely in your browser: no accounts, no tracking. Just say hi, ask what it can do, or list your ingredients to get started.</p>
+            <p>Experience the joy of cooking with ChefBot and elevate your home cooking to new heights. Try ChefBot today and embark on a culinary adventure like no other.</p>
+        </div>
     </div>
+
     <div class="disclaimer">
-        <p>ChefBot is an ongoing project and is continuously being improved. Its recipe suggestions come from a small hand-picked dataset, not a live database, so it won't know every dish &mdash; but it'll do its best with what you give it. Enjoy cooking with ChefBot!</p>
+        <p>ChefBot is an ongoing project and is continuously being improved. Its recipe suggestions may not always be perfect &mdash; but it'll do its best with what you give it. Enjoy cooking with ChefBot!</p>
     </div>
-    <a class="button" href="index.html">Go Back</a>
+
+    <div class="back-wrap">
+        <a class="button" href="index.html">← Go Back</a>
+    </div>
+
     <div class="footer">
         <p>&copy; 2026 ChefBot. All rights reserved.</p>
     </div>
