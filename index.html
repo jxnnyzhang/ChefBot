@@ -193,6 +193,27 @@
             text-decoration: none;
         }
         .recipe-link:hover { text-decoration: underline; }
+        .recipe-more-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 7px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: inherit;
+            background-color: var(--bg);
+            color: var(--accent-dark);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .recipe-more-btn:hover { background-color: #e3dad2; }
+        .recipe-details {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            animation: bubbleIn 0.15s ease;
+        }
 
         /* ---- Chat input: sits in the hero on landing, docks at the bottom once active ---- */
         .chat-input-wrap {
@@ -440,6 +461,6 @@
     <div class="footer">
         <p>&copy; 2026 ChefBot. All rights reserved.</p>
     </div>
-    <script src="chatbot.js?v=4"></script>
+    <script src="chatbot.js?v=5"></script>
 </body>
 </html>

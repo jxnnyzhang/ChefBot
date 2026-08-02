@@ -145,11 +145,12 @@
             name: r.name,
             time: r.time ? Math.round(r.time) + ' min' : null,
             timeMinutes: r.time || null,
+            servings: r.servings || null,
             ingredientCount: (r.ingredients || []).length,
             link: r.url,
             source: r.source,
             matched: matched,
-            missing: missing.slice(0, 6)
+            missing: missing
           };
         });
         var candidates = hasTokens ? mapped.filter(function (r) { return r.matched.length > 0; }) : mapped;
@@ -388,6 +389,7 @@
         recipe: {
           name: r.recipe.name,
           time: r.recipe.time,
+          servings: null,
           link: hasRealLink ? r.recipe.link : searchLinkFor(r.recipe.name),
           source: hasRealLink ? hostnameOf(r.recipe.link) : null,
           linkLabel: hasRealLink ? null : 'Search for this recipe',
@@ -407,11 +409,14 @@
         recipe: {
           name: r.name,
           time: r.time,
+          servings: r.servings,
           link: hasRealLink ? r.link : searchLinkFor(r.name),
           source: hasRealLink ? (r.source || hostnameOf(r.link)) : null,
           linkLabel: hasRealLink ? null : 'Search for this recipe',
           matched: r.matched,
           missing: r.missing,
+          // Edamam's API doesn't include step-by-step directions, only
+          // metadata + ingredients, so there's no real instructions text here.
           instructions: null
         }
       };
@@ -483,24 +488,61 @@
     var card = document.createElement('div');
     card.className = 'chat-bubble bot recipe-card';
 
-    var html = '<strong>' + escapeHtml(recipe.name || 'Recipe') + '</strong>';
-    if (recipe.time) html += ' (' + escapeHtml(recipe.time) + ')';
-    html += '<br>';
+    var summary = '<strong>' + escapeHtml(recipe.name || 'Recipe') + '</strong>';
+    if (recipe.time) summary += ' (' + escapeHtml(recipe.time) + ')';
+    summary += '<br>';
     if (recipe.matched && recipe.matched.length) {
-      html += 'Uses what you have: ' + escapeHtml(recipe.matched.join(', ')) + '.<br>';
+      summary += 'Uses what you have: ' + escapeHtml(recipe.matched.join(', ')) + '.';
     }
+    card.innerHTML = summary;
+
+    var detailsHtml = '';
     if (recipe.missing && recipe.missing.length) {
-      html += 'You might also need: ' + escapeHtml(recipe.missing.join(', ')) + '.<br>';
+      detailsHtml += "You'll also need: " + escapeHtml(recipe.missing.join(', ')) + '.<br>';
+    }
+    if (recipe.servings) {
+      detailsHtml += 'Servings: ' + escapeHtml(String(recipe.servings)) + '<br>';
     }
     if (recipe.instructions) {
-      html += renderMessageText(recipe.instructions) + '<br>';
-    }
-    if (isHttpUrl(recipe.link)) {
-      var label = recipe.linkLabel || (recipe.source ? 'View recipe on ' + recipe.source : 'View full recipe');
-      html += '<a class="recipe-link" href="' + escapeHtml(recipe.link) + '" target="_blank" rel="noopener">' + escapeHtml(label) + ' ↗</a>';
+      detailsHtml += renderMessageText(recipe.instructions) + '<br>';
+    } else if (recipe.source) {
+      detailsHtml += "ChefBot's live recipe data doesn't include full step-by-step directions " +
+        '&mdash; here\'s everything else ChefBot has. Use the link below for the complete method.<br>';
     }
 
-    card.innerHTML = html;
+    var hasLink = isHttpUrl(recipe.link);
+    if (detailsHtml || hasLink) {
+      var detailsEl = document.createElement('div');
+      detailsEl.className = 'recipe-details';
+      detailsEl.hidden = true;
+      detailsEl.innerHTML = detailsHtml;
+
+      if (hasLink) {
+        var label = recipe.linkLabel || (recipe.source ? 'View recipe on ' + recipe.source : 'View full recipe');
+        var linkEl = document.createElement('a');
+        linkEl.className = 'recipe-link';
+        linkEl.href = recipe.link;
+        linkEl.target = '_blank';
+        linkEl.rel = 'noopener';
+        linkEl.textContent = label + ' ↗';
+        detailsEl.appendChild(linkEl);
+      }
+
+      var toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className = 'recipe-more-btn';
+      toggleBtn.textContent = 'Tell me more';
+      toggleBtn.addEventListener('click', function () {
+        var opening = detailsEl.hidden;
+        detailsEl.hidden = !opening;
+        toggleBtn.textContent = opening ? 'Show less' : 'Tell me more';
+        container.scrollTop = container.scrollHeight;
+      });
+
+      card.appendChild(toggleBtn);
+      card.appendChild(detailsEl);
+    }
+
     container.appendChild(card);
     container.scrollTop = container.scrollHeight;
   }
