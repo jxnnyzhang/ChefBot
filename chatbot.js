@@ -312,15 +312,21 @@
     try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return null; }
   }
 
+  function searchLinkFor(name) {
+    return 'https://www.google.com/search?q=' + encodeURIComponent(name + ' recipe');
+  }
+
   function recipeItemsFromLocal(results) {
     return results.map(function (r) {
+      var hasRealLink = !!r.recipe.link;
       return {
         type: 'recipe',
         recipe: {
           name: r.recipe.name,
           time: r.recipe.time,
-          link: r.recipe.link,
-          source: r.recipe.link ? hostnameOf(r.recipe.link) : null,
+          link: hasRealLink ? r.recipe.link : searchLinkFor(r.recipe.name),
+          source: hasRealLink ? hostnameOf(r.recipe.link) : null,
+          linkLabel: hasRealLink ? null : 'Search for this recipe',
           matched: r.matched,
           missing: r.missing,
           instructions: r.recipe.instructions
@@ -331,13 +337,15 @@
 
   function recipeItemsFromLive(liveResults) {
     return liveResults.map(function (r) {
+      var hasRealLink = !!r.link;
       return {
         type: 'recipe',
         recipe: {
           name: r.name,
           time: r.time,
-          link: r.link,
-          source: r.source || (r.link ? hostnameOf(r.link) : null),
+          link: hasRealLink ? r.link : searchLinkFor(r.name),
+          source: hasRealLink ? (r.source || hostnameOf(r.link)) : null,
+          linkLabel: hasRealLink ? null : 'Search for this recipe',
           matched: r.matched,
           missing: r.missing,
           instructions: null
@@ -420,7 +428,7 @@
       html += renderMessageText(recipe.instructions) + '<br>';
     }
     if (isHttpUrl(recipe.link)) {
-      var label = recipe.source ? 'View recipe on ' + recipe.source : 'View full recipe';
+      var label = recipe.linkLabel || (recipe.source ? 'View recipe on ' + recipe.source : 'View full recipe');
       html += '<a class="recipe-link" href="' + escapeHtml(recipe.link) + '" target="_blank" rel="noopener">' + escapeHtml(label) + ' ↗</a>';
     }
 
@@ -437,57 +445,52 @@
     }
   }
 
-  function initOverlay() {
-    var overlay = document.getElementById('chat-overlay');
-    var openBtn = document.getElementById('open-chat-btn');
-    var closeBtn = document.getElementById('back-home-btn');
-    var input = document.getElementById('chat-input');
-    if (!overlay || !openBtn || !closeBtn) return;
-
-    function openChat() {
-      overlay.classList.add('open');
-      document.body.classList.add('chat-open');
-      if (input) setTimeout(function () { input.focus(); }, 200);
-    }
-
-    function closeChat() {
-      overlay.classList.remove('open');
-      document.body.classList.remove('chat-open');
-    }
-
-    openBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      openChat();
-    });
-    closeBtn.addEventListener('click', closeChat);
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) closeChat();
-    });
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && overlay.classList.contains('open')) closeChat();
-    });
-  }
-
   function init() {
-    initOverlay();
-
     var form = document.getElementById('chat-form');
     var input = document.getElementById('chat-input');
     var messages = document.getElementById('chat-messages');
+    var homeBtn = document.getElementById('brand-home-btn');
+    var chips = document.querySelectorAll('.chip');
     if (!form || !input || !messages) return;
 
-    addMessage(messages, "Hi! I'm ChefBot 🍳 List some ingredients you have (e.g. \"chicken, garlic, rice\") and I'll suggest recipes. You can also ask me who I am or what I do!", 'bot');
+    function activateChatView() {
+      if (!document.body.classList.contains('chat-active')) {
+        document.body.classList.add('chat-active');
+      }
+    }
 
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var text = input.value.trim();
+    function resetToHome() {
+      document.body.classList.remove('chat-active');
+      messages.innerHTML = '';
+      input.value = '';
+      input.focus();
+    }
+
+    function sendMessage(text) {
+      text = text.trim();
       if (!text) return;
+      activateChatView();
       addMessage(messages, text, 'user');
       input.value = '';
       respond(text).then(function (items) {
         items.forEach(function (item) { renderItem(messages, item); });
       });
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      sendMessage(input.value);
     });
+
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        sendMessage(chip.getAttribute('data-msg') || '');
+      });
+    });
+
+    if (homeBtn) {
+      homeBtn.addEventListener('click', resetToHome);
+    }
   }
 
   if (document.readyState === 'loading') {

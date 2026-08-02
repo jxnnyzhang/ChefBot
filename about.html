@@ -6,15 +6,15 @@
     <title>About ChefBot</title>
     <style>
         :root {
-            --bg: #faf5f0;
+            --bg: #efebe8;
             --surface: #ffffff;
-            --text: #201a17;
-            --text-muted: #6b615a;
-            --accent: #c9704f;
-            --accent-dark: #a85a3d;
-            --border: rgba(32, 26, 23, 0.08);
-            --radius: 16px;
-            --shadow: 0 1px 2px rgba(32, 26, 23, 0.05), 0 12px 28px rgba(32, 26, 23, 0.08);
+            --text: #101010;
+            --text-muted: #6f6a66;
+            --accent: #b6a296;
+            --accent-dark: #9c8879;
+            --border: rgba(16, 16, 16, 0.09);
+            --radius: 14px;
+            --shadow: 0 1px 2px rgba(16, 16, 16, 0.04), 0 10px 30px rgba(16, 16, 16, 0.07);
         }
         * { box-sizing: border-box; }
         body {
@@ -32,7 +32,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 16px 32px;
-            background: rgba(250, 245, 240, 0.85);
+            background: rgba(239, 235, 232, 0.85);
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid var(--border);
@@ -41,59 +41,58 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 700;
             text-decoration: none;
             color: var(--text);
         }
-        .brand-icon { font-size: 26px; }
+        .brand img { width: 32px; height: 32px; object-fit: contain; }
         .nav-link {
             display: inline-block;
             text-decoration: none;
-            padding: 10px 20px;
+            padding: 9px 18px;
             border-radius: 999px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text);
-            border: 1px solid var(--border);
+            border: 1px solid transparent;
             transition: background-color 0.2s ease, border-color 0.2s ease;
         }
         .nav-link:hover {
             background-color: var(--surface);
-            border-color: var(--accent);
+            border-color: var(--border);
         }
         .hero {
-            background: linear-gradient(135deg, var(--accent), #e2a56d 65%, #eec48f);
-            color: #fff;
-            padding: 56px 24px 90px;
+            padding: 64px 24px 20px;
             text-align: center;
         }
         .hero h1 {
-            font-size: clamp(30px, 4.5vw, 44px);
+            font-size: clamp(28px, 4vw, 38px);
             margin: 0;
             font-weight: 800;
             letter-spacing: -0.02em;
         }
         .panel-wrap {
-            max-width: 720px;
-            margin: -60px auto 60px;
+            max-width: 680px;
+            margin: 24px auto 40px;
             padding: 0 24px;
         }
         .panel {
             background-color: var(--surface);
+            border: 1px solid var(--border);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
-            padding: 40px;
+            padding: 36px;
         }
         .panel p {
-            font-size: 17px;
-            line-height: 1.6;
+            font-size: 16px;
+            line-height: 1.65;
             color: var(--text-muted);
-            margin: 0 0 20px;
+            margin: 0 0 18px;
         }
         .panel p:last-child { margin-bottom: 0; }
         .disclaimer {
-            max-width: 720px;
+            max-width: 680px;
             margin: 0 auto 40px;
             padding: 0 24px;
             text-align: center;
@@ -106,8 +105,8 @@
         }
         .button {
             display: inline-block;
-            padding: 12px 28px;
-            font-size: 16px;
+            padding: 11px 26px;
+            font-size: 15px;
             font-weight: 700;
             font-family: inherit;
             background-color: var(--surface);
@@ -131,7 +130,7 @@
 </head>
 <body>
     <header class="topbar">
-        <a href="index.html" class="brand"><span class="brand-icon">🍳</span> ChefBot</a>
+        <a href="index.html" class="brand"><img src="chefhat.png" alt="ChefBot logo"> ChefBot</a>
         <a href="index.html" class="nav-link">Home</a>
     </header>
 
@@ -142,7 +141,7 @@
     <div class="panel-wrap">
         <div class="panel">
             <p>ChefBot is a recipe-finding chatbot that helps you figure out what to cook with what you already have. Tell it a few ingredients from your fridge or pantry and it matches them against real recipes &mdash; typos and all, thanks to fuzzy matching.</p>
-            <p>ChefBot runs entirely in your browser: no accounts, no tracking. Just say hi, ask what it can do, or list your ingredients to get started.</p>
+            <p>ChefBot runs entirely in your browser, with live recipe results pulled from the Edamam Recipe Search API. No accounts, no tracking. Just say hi, ask what it can do, or list your ingredients to get started.</p>
             <p>Experience the joy of cooking with ChefBot and elevate your home cooking to new heights. Try ChefBot today and embark on a culinary adventure like no other.</p>
         </div>
     </div>
