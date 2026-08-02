@@ -4,14 +4,21 @@ ChefBot is a small recipe-finding chatbot. The site itself is fully static — n
 
 ## How it works
 
-- `index.html` — the page, including the chat widget markup.
+- `index.html` — the page, including the chat widget and the Discover (Trending / Editor's Picks) tabs.
 - `about.html` — the about page.
 - `chatbot.js` — all of the chatbot logic:
   - **Small talk**: recognizes greetings ("hi", "hello"), identity questions ("who are you?"), capability questions ("what do you do?"), thanks, and goodbyes.
-  - **Recipe matching**: everything else is treated as a list of ingredients. Ingredients are normalized (plurals, common synonyms like "tomatoes" → "tomato").
-  - If `EDAMAM_PROXY_URL` at the top of `chatbot.js` is set, ChefBot queries the Worker proxy for live Edamam results first, matching returned ingredient lines against what you listed.
+  - **Recipe matching**: everything else is treated as a list of ingredients, plus optional time/complexity constraints ("a quick 20 min recipe", "something simple"). Ingredients are normalized (plurals, common synonyms like "tomatoes" → "tomato").
+  - If `EDAMAM_PROXY_URL` at the top of `chatbot.js` is set, ChefBot queries the Worker proxy for live Edamam results first, matching returned ingredient lines against what you listed and, when a time budget was given, filtering server-side via Edamam's own `time` parameter.
   - If the proxy isn't configured (or the request fails/times out), ChefBot falls back to a small hand-curated local dataset, matched with fuzzy string matching (Levenshtein distance) so small typos like "chiken" still match "chicken".
-- `worker/index.js` — the Cloudflare Worker that proxies requests to Edamam. It holds the Edamam credentials as Worker secrets so they never appear in this repo or in the site's source.
+  - **"Show me more"**: each search fetches a larger pool than it displays; asking for more options ("something else", "give me more") serves the next round from that same pool — no extra Edamam call for the first couple of rounds.
+  - **"Tell me more"**: each recipe card expands in place to show remaining ingredients, servings, and step-by-step instructions — real written steps for local recipes, or a best-effort live extraction (see below) for Edamam results.
+- `worker/index.js` — the Cloudflare Worker. Three actions, routed by query param:
+  - `?q=...` — recipe search (as above). Cached 6h per query.
+  - `?homepage=1` — trending + editor's-picks pool for the homepage Discover tabs, refreshed daily and cached 24h so it costs about one shared Edamam call per day regardless of visitor count. "Editor's Picks" filters results client-side against a list of well-known food publishers (Edamam has no publisher filter of its own), so it can legitimately come up short some days.
+  - `?extract=<url>` — best-effort step-by-step instructions scraped from the recipe's own page (schema.org `Recipe` JSON-LD). No Edamam quota cost, cached 7 days per URL. **Many larger publishers (NYT Cooking, AllRecipes, Bon Appétit, etc.) block automated requests and will return no steps** — this is bot-protection on their end, not a bug here. It works well for smaller/independent food blogs. When it comes back empty, ChefBot says so honestly and points to the source link instead.
+  
+  It holds the Edamam credentials as Worker secrets so they never appear in this repo or in the site's source.
 
 ## Live recipes via Edamam
 

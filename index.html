@@ -214,6 +214,20 @@
             border-top: 1px solid var(--border);
             animation: bubbleIn 0.15s ease;
         }
+        .recipe-steps {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        .recipe-steps li {
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+        .recipe-steps li:last-child { margin-bottom: 0; }
+        .recipe-steps-status {
+            margin: 8px 0;
+            color: var(--text-muted);
+            font-style: italic;
+        }
 
         /* ---- Chat input: sits in the hero on landing, docks at the bottom once active ---- */
         .chat-input-wrap {
@@ -324,6 +338,42 @@
             transition: background-color 0.2s ease;
         }
         .trending-link:hover { background-color: #e3dad2; }
+        .trending-photo {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+        }
+        .trending-empty {
+            color: var(--text-muted);
+            font-size: 15px;
+            padding: 20px;
+            width: 100%;
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 28px;
+        }
+        .tab-btn {
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 10px 20px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background-color: var(--surface);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .tab-btn.active {
+            background-color: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .tab-btn:hover:not(.active) { background-color: #f4ede6; }
 
         #resources {
             padding: 48px 24px 60px;
@@ -419,19 +469,17 @@
     </div>
 
     <div class="content">
-        <h2>Trending Recipes</h2>
-        <p>Explore our collection of popular recipes.</p>
-        <div class="trending-tiles">
-            <div class="trending-tile">
-                <span class="trending-icon">🥗</span>
-                <h3>Poke bowl with pickled garlic and seaweed</h3>
-                <a class="trending-link" href="https://www.delicious.com.au/recipes/poke-bowl-pickled-garlic-seaweed/ypunS37M" target="_blank" rel="noopener">View recipe on delicious.com.au ↗</a>
-            </div>
-            <div class="trending-tile">
-                <span class="trending-icon">🌮</span>
-                <h3>Carne asada with pico de gallo</h3>
-                <a class="trending-link" href="https://www.taste.com.au/recipes/carne-asada-pico-de-gallo/677cae67-5cb9-420e-b4de-3d8088619ccc" target="_blank" rel="noopener">View recipe on taste.com.au ↗</a>
-            </div>
+        <h2>Discover Recipes</h2>
+        <p>Pulled live from Edamam and refreshed daily.</p>
+        <div class="tabs">
+            <button type="button" class="tab-btn active" data-tab="trending">🔥 Trending</button>
+            <button type="button" class="tab-btn" data-tab="editors">🏆 Editor's Picks</button>
+        </div>
+        <div class="trending-tiles" id="trending-tiles" data-panel="trending">
+            <p class="trending-empty">Loading today's trending recipes&hellip;</p>
+        </div>
+        <div class="trending-tiles" id="editors-tiles" data-panel="editors" hidden>
+            <p class="trending-empty">Loading today's picks&hellip;</p>
         </div>
     </div>
 
@@ -461,6 +509,6 @@
     <div class="footer">
         <p>&copy; 2026 ChefBot. All rights reserved.</p>
     </div>
-    <script src="chatbot.js?v=5"></script>
+    <script src="chatbot.js?v=6"></script>
 </body>
 </html>
