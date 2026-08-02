@@ -5,6 +5,10 @@
  * appear in the static site's source. The browser calls this Worker;
  * this Worker calls Edamam and returns a trimmed-down JSON payload.
  *
+ * Responses are cached at Cloudflare's edge (free, built-in Cache API) so
+ * repeat searches for the same ingredients don't cost another Edamam call —
+ * this matters a lot on Edamam's free plan, which has a very small quota.
+ *
  * Deploy: see README.md "Live recipes via Edamam" section.
  */
 
@@ -13,6 +17,8 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:8000',
   'http://127.0.0.1:8000'
 ]);
+
+const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6 hours
 
 function corsHeaders(origin) {
   return {
@@ -31,7 +37,7 @@ function json(body, status, origin) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || '';
 
     if (request.method === 'OPTIONS') {
@@ -43,9 +49,28 @@ export default {
     }
 
     const url = new URL(request.url);
-    const q = (url.searchParams.get('q') || '').trim();
+    const q = (url.searchParams.get('q') || '').trim().toLowerCase();
     if (!q) {
       return json({ error: 'Missing "q" query parameter' }, 400, origin);
+    }
+
+    // Optional total-time filter, e.g. "1-30" for "30 minutes or less".
+    // Validated so only a Edamam-shaped range/number can reach the upstream call.
+    const time = url.searchParams.get('time') || '';
+    const validTime = /^\d{1,3}(-\d{1,3})?\+?$/.test(time) ? time : '';
+
+    // Cache key is independent of Origin/headers so all allowed sites share
+    // the same cached entry for the same query.
+    const cacheKeyUrl = new URL('https://chefbot-recipe-proxy.internal/recipes');
+    cacheKeyUrl.searchParams.set('q', q);
+    if (validTime) cacheKeyUrl.searchParams.set('time', validTime);
+    const cacheKey = new Request(cacheKeyUrl.toString());
+    const cache = caches.default;
+
+    const cachedResp = await cache.match(cacheKey);
+    if (cachedResp) {
+      const recipes = await cachedResp.json();
+      return json({ recipes: recipes }, 200, origin);
     }
 
     if (!env.EDAMAM_APP_ID || !env.EDAMAM_APP_KEY) {
@@ -57,13 +82,7 @@ export default {
     edamamUrl.searchParams.set('q', q);
     edamamUrl.searchParams.set('app_id', env.EDAMAM_APP_ID);
     edamamUrl.searchParams.set('app_key', env.EDAMAM_APP_KEY);
-
-    // Optional total-time filter, e.g. "1-30" for "30 minutes or less".
-    // Validated so only a Edamam-shaped range/number can reach the upstream call.
-    const time = url.searchParams.get('time') || '';
-    if (/^\d{1,3}(-\d{1,3})?\+?$/.test(time)) {
-      edamamUrl.searchParams.set('time', time);
-    }
+    if (validTime) edamamUrl.searchParams.set('time', validTime);
 
     // Some Edamam plans reject requests that include Edamam-Account-User at
     // all ("This app does not support users"), so only send it if explicitly
@@ -89,7 +108,6 @@ export default {
       const r = hit.recipe || {};
       return {
         name: r.label,
-        image: r.image,
         url: r.url,
         time: r.totalTime,
         servings: r.yield,
@@ -97,6 +115,11 @@ export default {
         ingredients: r.ingredientLines || []
       };
     });
+
+    const toCache = new Response(JSON.stringify(recipes), {
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=' + CACHE_TTL_SECONDS }
+    });
+    ctx.waitUntil(cache.put(cacheKey, toCache));
 
     return json({ recipes: recipes }, 200, origin);
   }
