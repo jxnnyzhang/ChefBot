@@ -91,6 +91,12 @@
             margin: 0 0 18px;
         }
         .panel p:last-child { margin-bottom: 0; }
+        .panel.note {
+            margin-top: 18px;
+            border-left: 4px solid var(--accent);
+            background-color: #f8f4f1;
+        }
+        .panel.note p { color: var(--text); }
         .disclaimer {
             max-width: 680px;
             margin: 0 auto 40px;
@@ -143,6 +149,10 @@
             <p>ChefBot is a recipe-finding chatbot that helps you figure out what to cook with what you already have. Tell it a few ingredients from your fridge or pantry and it matches them against real recipes &mdash; typos and all, thanks to fuzzy matching.</p>
             <p>ChefBot runs entirely in your browser, with live recipe results pulled from the Edamam Recipe Search API. No accounts, no tracking. Just say hi, ask what it can do, or list your ingredients to get started.</p>
             <p>Experience the joy of cooking with ChefBot and elevate your home cooking to new heights. Try ChefBot today and embark on a culinary adventure like no other.</p>
+        </div>
+
+        <div class="panel note">
+            <p><strong>No login, no saved chat history &mdash; on purpose.</strong> ChefBot intentionally skips authentication so anyone can start chatting immediately, with nothing to sign up for. The tradeoff is that conversations aren't saved between visits &mdash; each session starts fresh. The goal is a fast, no-friction "ask me anytime" tool: drop by, get a recipe idea, and go.</p>
         </div>
     </div>
 
