@@ -8,8 +8,10 @@
  * Three actions, routed by query param:
  *   ?q=...[&time=1-30]   Recipe search (existing). Cached 6h per query.
  *   ?homepage=1          Daily trending + editor's-picks pool for the
- *                         homepage. One Edamam call/day, cached 24h and
- *                         shared by all visitors.
+ *                         homepage. A few pooled Edamam calls/day (one per
+ *                         rotating search term), cached 24h and shared by
+ *                         all visitors, filtered down to reputable food
+ *                         media sources.
  *   ?extract=<url>        Best-effort step-by-step instructions scraped
  *                         from the recipe's own page (schema.org JSON-LD).
  *                         No Edamam quota cost. Cached 7 days per URL.
@@ -27,17 +29,35 @@ const SEARCH_CACHE_TTL = 6 * 60 * 60; // 6 hours
 const HOMEPAGE_CACHE_TTL = 24 * 60 * 60; // 1 day
 const EXTRACT_CACHE_TTL = 7 * 24 * 60 * 60; // 1 week
 
-const HOMEPAGE_QUERY_TERMS = ['dinner', 'chicken', 'pasta', 'salad', 'dessert', 'soup', 'breakfast', 'vegetarian'];
+const HOMEPAGE_QUERY_TERMS = ['dinner', 'chicken', 'pasta', 'salad', 'dessert', 'soup', 'breakfast', 'vegetarian', 'seafood', 'baking'];
 
-// Recipes from these publishers are treated as "editor's picks" — Edamam
-// doesn't offer a publisher filter, so this is matched client-side against
-// the `source` field on whatever the daily query happens to return.
-const TRUSTED_SOURCES = [
+// "Editor's Picks" — a small tier of especially well-regarded food publishers.
+// Edamam has no publisher filter of its own, so this is matched client-side
+// against the `source` field on whatever the daily queries happen to return;
+// it can legitimately come up short some days if none of those hits.
+const PRESTIGE_SOURCES = [
   'nyt cooking', 'new york times', 'bon appetit', 'bon appétit', 'serious eats',
   'food network', 'epicurious', 'food & wine', 'saveur', 'martha stewart',
-  'smitten kitchen', "america's test kitchen", "cook's illustrated", 'the kitchn',
-  'washington post', 'los angeles times', 'the guardian', 'bbc good food', 'delish'
+  'smitten kitchen', "america's test kitchen", "cook's illustrated"
 ];
+
+// "Trending" — a wider tier of recognizable, professionally edited food
+// media, used to keep the general trending picks looking appetizing rather
+// than pulling in random user-submitted recipes from aggregator sites.
+// Includes everything in PRESTIGE_SOURCES plus more mainstream outlets.
+const REPUTABLE_SOURCES = PRESTIGE_SOURCES.concat([
+  'the kitchn', 'washington post', 'los angeles times', 'the guardian',
+  'bbc good food', 'bbc food', 'delish', 'food52', 'simply recipes',
+  'allrecipes', 'taste of home', 'eatingwell', 'cooking light',
+  'southern living', 'real simple', 'better homes', 'the spruce eats',
+  'once upon a chef', 'bon app'
+]);
+
+function matchesSource(source, list) {
+  if (!source) return false;
+  const s = String(source).toLowerCase();
+  return list.some((t) => s.indexOf(t) > -1);
+}
 
 function corsHeaders(origin) {
   return {
@@ -53,12 +73,6 @@ function json(body, status, origin) {
     status: status || 200,
     headers: Object.assign({ 'Content-Type': 'application/json' }, corsHeaders(origin))
   });
-}
-
-function isTrustedSource(source) {
-  if (!source) return false;
-  const s = String(source).toLowerCase();
-  return TRUSTED_SOURCES.some((t) => s.indexOf(t) > -1);
 }
 
 function edamamHeadersFor(env) {
@@ -140,7 +154,7 @@ async function handleSearch(url, env, ctx, origin) {
 // ---------------------------------------------------------------------
 async function handleHomepage(env, ctx, origin) {
   const day = Math.floor(Date.now() / 86400000);
-  const cacheKeyUrl = new URL('https://chefbot-recipe-proxy.internal/homepage');
+  const cacheKeyUrl = new URL('https://chefbot-recipe-proxy.internal/homepage-v2');
   cacheKeyUrl.searchParams.set('day', String(day));
   const cacheKey = new Request(cacheKeyUrl.toString());
   const cache = caches.default;
@@ -152,36 +166,51 @@ async function handleHomepage(env, ctx, origin) {
     return json({ error: 'Worker is not configured with Edamam credentials' }, 500, origin);
   }
 
-  const term = HOMEPAGE_QUERY_TERMS[day % HOMEPAGE_QUERY_TERMS.length];
-  const edamamUrl = new URL('https://api.edamam.com/api/recipes/v2');
-  edamamUrl.searchParams.set('type', 'public');
-  edamamUrl.searchParams.set('q', term);
-  edamamUrl.searchParams.set('app_id', env.EDAMAM_APP_ID);
-  edamamUrl.searchParams.set('app_key', env.EDAMAM_APP_KEY);
+  // Pool a few different searches (rotating daily) so there's enough variety
+  // left after filtering down to reputable/prestige sources.
+  const n = HOMEPAGE_QUERY_TERMS.length;
+  const start = (day * 3) % n;
+  const terms = [HOMEPAGE_QUERY_TERMS[start], HOMEPAGE_QUERY_TERMS[(start + 1) % n], HOMEPAGE_QUERY_TERMS[(start + 2) % n]];
 
-  let edamamResp;
-  try {
-    edamamResp = await fetch(edamamUrl.toString(), { headers: edamamHeadersFor(env) });
-  } catch (err) {
+  let hits = [];
+  for (const term of terms) {
+    const edamamUrl = new URL('https://api.edamam.com/api/recipes/v2');
+    edamamUrl.searchParams.set('type', 'public');
+    edamamUrl.searchParams.set('q', term);
+    edamamUrl.searchParams.set('app_id', env.EDAMAM_APP_ID);
+    edamamUrl.searchParams.set('app_key', env.EDAMAM_APP_KEY);
+    try {
+      const resp = await fetch(edamamUrl.toString(), { headers: edamamHeadersFor(env) });
+      if (resp.ok) {
+        const d = await resp.json();
+        hits = hits.concat(d.hits || []);
+      }
+    } catch (err) {
+      // skip this term, keep going with whatever else we got
+    }
+  }
+
+  if (hits.length === 0) {
     return json({ error: 'Failed to reach Edamam' }, 502, origin);
   }
-  if (!edamamResp.ok) {
-    return json({ error: 'Edamam request failed', status: edamamResp.status }, 502, origin);
-  }
 
-  const data = await edamamResp.json();
-  const mapped = (data.hits || [])
-    .map((hit) => {
-      const r = hit.recipe || {};
-      return { name: r.label, image: r.image, url: r.url, source: r.source, time: r.totalTime };
-    })
-    .filter((r) => r.name && r.image && r.url);
+  const seenUrls = new Set();
+  const mapped = [];
+  hits.forEach((hit) => {
+    const r = hit.recipe || {};
+    if (!r.label || !r.image || !r.url) return;
+    if (seenUrls.has(r.url)) return;
+    seenUrls.add(r.url);
+    mapped.push({ name: r.label, image: r.image, url: r.url, source: r.source, time: r.totalTime });
+  });
 
-  const payload = {
-    trending: mapped.slice(0, 3),
-    editorsPicks: mapped.filter((r) => isTrustedSource(r.source)).slice(0, 3),
-    term: term
-  };
+  const editorsPicks = mapped.filter((r) => matchesSource(r.source, PRESTIGE_SOURCES)).slice(0, 3);
+  const editorsUrls = new Set(editorsPicks.map((r) => r.url));
+  const trending = mapped
+    .filter((r) => matchesSource(r.source, REPUTABLE_SOURCES) && !editorsUrls.has(r.url))
+    .slice(0, 3);
+
+  const payload = { trending: trending, editorsPicks: editorsPicks, terms: terms };
 
   const toCache = new Response(JSON.stringify(payload), {
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=' + HOMEPAGE_CACHE_TTL }
