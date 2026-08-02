@@ -20,9 +20,16 @@
             --shadow: 0 1px 2px rgba(16, 16, 16, 0.04), 0 10px 30px rgba(16, 16, 16, 0.07);
             --font-display: 'Fraunces', 'Times New Roman', serif;
             --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            }
-        * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        }
+    
+        * {
+            box-sizing: border-box;
+        }
+    
+        html {
+            scroll-behavior: smooth;
+        }
+    
         body {
             font-family: var(--font-body);
             margin: 0;
@@ -30,10 +37,14 @@
             background-color: var(--bg);
             color: var(--text);
         }
+    
         h1, h2, h3, h4, h5, h6 {
             font-family: var(--font-display);
         }
-
+    
+        p, span, a, li, button, input, .chip, .nav-link, .tab-btn, .recipe-more-btn, .resource-desc {
+            font-family: var(--font-body);
+        }
         .topbar {
             position: sticky;
             top: 0;
