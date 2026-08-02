@@ -106,15 +106,24 @@
   // ---------------------------------------------------------------------
   // Live recipe lookup via the Cloudflare Worker proxy
   // ---------------------------------------------------------------------
-  function fetchLiveRecipes(tokens) {
+  function fetchLiveRecipes(tokens, constraints) {
     if (!isProxyConfigured() || typeof fetch !== 'function') return Promise.resolve(null);
 
-    var query = tokens.join(' ');
+    var hasTokens = tokens.length > 0;
+    var query = hasTokens ? tokens.join(' ')
+      : (constraints.wantsQuick ? 'quick' : '') + (constraints.wantsSimple ? ' easy' : '');
+    query = query.trim() || 'popular';
+
+    var proxyUrl = EDAMAM_PROXY_URL + '?q=' + encodeURIComponent(query);
+    if (constraints.maxTime) {
+      proxyUrl += '&time=1-' + constraints.maxTime;
+    }
+
     var controller = (typeof AbortController === 'function') ? new AbortController() : null;
     var timer = controller && setTimeout(function () { controller.abort(); }, 6000);
     var opts = controller ? { signal: controller.signal } : {};
 
-    return fetch(EDAMAM_PROXY_URL + '?q=' + encodeURIComponent(query), opts)
+    return fetch(proxyUrl, opts)
       .then(function (resp) {
         if (timer) clearTimeout(timer);
         if (!resp.ok) throw new Error('proxy responded with ' + resp.status);
@@ -125,23 +134,32 @@
         var mapped = data.recipes.map(function (r) {
           var matched = [];
           var missing = [];
-          (r.ingredients || []).forEach(function (line) {
-            var lower = String(line).toLowerCase();
-            var hit = tokens.some(function (t) { return fuzzyIncludes(t, lower); });
-            (hit ? matched : missing).push(line);
-          });
+          if (hasTokens) {
+            (r.ingredients || []).forEach(function (line) {
+              var lower = String(line).toLowerCase();
+              var hit = tokens.some(function (t) { return fuzzyIncludes(t, lower); });
+              (hit ? matched : missing).push(line);
+            });
+          }
           return {
             name: r.name,
             time: r.time ? Math.round(r.time) + ' min' : null,
+            timeMinutes: r.time || null,
+            ingredientCount: (r.ingredients || []).length,
             link: r.url,
             source: r.source,
             matched: matched,
             missing: missing.slice(0, 6)
           };
         });
-        return mapped
-          .filter(function (r) { return r.matched.length > 0; })
-          .sort(function (a, b) { return b.matched.length - a.matched.length; })
+        var candidates = hasTokens ? mapped.filter(function (r) { return r.matched.length > 0; }) : mapped;
+        return candidates
+          .sort(function (a, b) {
+            if (hasTokens && a.matched.length !== b.matched.length) return b.matched.length - a.matched.length;
+            if (constraints.wantsSimple && a.ingredientCount !== b.ingredientCount) return a.ingredientCount - b.ingredientCount;
+            if (constraints.wantsQuick && (a.timeMinutes || 999) !== (b.timeMinutes || 999)) return (a.timeMinutes || 999) - (b.timeMinutes || 999);
+            return 0;
+          })
           .slice(0, 3);
       })
       .catch(function () { return null; });
@@ -151,7 +169,11 @@
   // Ingredient normalization
   // ---------------------------------------------------------------------
   var STOPWORDS = ['i', 'have', 'got', 'some', 'a', 'an', 'the', 'and', 'with', 'leftover',
-    'my', 'me', 'in', 'fridge', 'pantry', 'left', 'over', 'lots', 'of', 'few', 'extra', 'to', 'use', 'up'];
+    'my', 'me', 'in', 'fridge', 'pantry', 'left', 'over', 'lots', 'of', 'few', 'extra', 'to', 'use', 'up',
+    'want', 'wanna', 'need', 'looking', 'for', 'please', 'can', 'you', 'give', 'suggest', 'find',
+    'recipe', 'recipes', 'something', 'anything', 'using', 'make', 'cook', 'cooking', 'dish', 'meal',
+    'quick', 'quickly', 'fast', 'rapid', 'simple', 'easy', 'is', 'that', 'min', 'mins', 'minute', 'minutes',
+    'under', 'less', 'than', 'around', 'about', 'or'];
 
   var SYNONYMS = {
     'tomatoes': 'tomato', 'onions': 'onion', 'eggs': 'egg', 'potatoes': 'potato',
@@ -195,8 +217,30 @@
         phrases.push(SYNONYMS[phrase]);
       }
     });
-    var normalized = tokens.map(normalizeToken).filter(Boolean);
+    var normalized = tokens.map(normalizeToken).filter(Boolean).filter(function (t) { return !/^\d+$/.test(t); });
     return dedupe(phrases.concat(normalized));
+  }
+
+  // ---------------------------------------------------------------------
+  // Time / complexity constraints ("quick", "simple", "5 min", "under 20 minutes")
+  // ---------------------------------------------------------------------
+  function parseConstraints(text) {
+    var t = text.toLowerCase();
+    var wantsQuick = /\b(quick|quickly|fast|rapid)\b/.test(t);
+    var wantsSimple = /\b(simple|easy)\b/.test(t);
+    var explicitMatch = t.match(/(\d{1,3})\s*[\s-]*min(?:ute)?s?\b/);
+    var maxTime = explicitMatch ? parseInt(explicitMatch[1], 10) : (wantsQuick ? 30 : null);
+    return { maxTime: maxTime, wantsQuick: wantsQuick, wantsSimple: wantsSimple };
+  }
+
+  function hasConstraints(c) {
+    return !!(c.maxTime || c.wantsQuick || c.wantsSimple);
+  }
+
+  function parseMinutes(timeStr) {
+    if (!timeStr) return null;
+    var m = String(timeStr).match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : null;
   }
 
   function dedupe(arr) {
@@ -244,23 +288,43 @@
   // ---------------------------------------------------------------------
   // Recipe search
   // ---------------------------------------------------------------------
-  function findRecipes(userTokens) {
+  function findRecipes(userTokens, constraints) {
+    constraints = constraints || {};
+    var hasTokens = userTokens.length > 0;
+
     var scored = RECIPES.map(function (recipe) {
       var matched = [];
-      recipe.ingredients.forEach(function (ing) {
-        var hit = userTokens.some(function (t) { return fuzzyIncludes(t, ing); });
-        if (hit) matched.push(ing);
-      });
-      var missing = recipe.ingredients.filter(function (ing) { return matched.indexOf(ing) === -1; });
+      if (hasTokens) {
+        recipe.ingredients.forEach(function (ing) {
+          var hit = userTokens.some(function (t) { return fuzzyIncludes(t, ing); });
+          if (hit) matched.push(ing);
+        });
+      }
+      var missing = hasTokens ? recipe.ingredients.filter(function (ing) { return matched.indexOf(ing) === -1; }) : [];
       return { recipe: recipe, matched: matched, missing: missing };
     });
-    return scored
-      .filter(function (s) { return s.matched.length > 0; })
+
+    var candidates = hasTokens ? scored.filter(function (s) { return s.matched.length > 0; }) : scored;
+
+    if (constraints.maxTime) {
+      var underBudget = candidates.filter(function (s) {
+        var mins = parseMinutes(s.recipe.time);
+        return mins === null || mins <= constraints.maxTime;
+      });
+      if (underBudget.length > 0) candidates = underBudget;
+    }
+
+    return candidates
       .sort(function (a, b) {
-        var coverageA = a.matched.length / a.recipe.ingredients.length;
-        var coverageB = b.matched.length / b.recipe.ingredients.length;
-        if (b.matched.length !== a.matched.length) return b.matched.length - a.matched.length;
-        if (coverageB !== coverageA) return coverageB - coverageA;
+        if (hasTokens && b.matched.length !== a.matched.length) return b.matched.length - a.matched.length;
+        if (constraints.wantsSimple && a.recipe.ingredients.length !== b.recipe.ingredients.length) {
+          return a.recipe.ingredients.length - b.recipe.ingredients.length;
+        }
+        if (constraints.wantsQuick || constraints.maxTime) {
+          var ma = parseMinutes(a.recipe.time) || 999;
+          var mb = parseMinutes(b.recipe.time) || 999;
+          if (ma !== mb) return ma - mb;
+        }
         return b.recipe.popularity - a.recipe.popularity;
       })
       .slice(0, 3);
@@ -366,17 +430,21 @@
       case 'ingredients':
       default:
         var tokens = extractIngredients(userText);
-        if (tokens.length === 0) {
+        var constraints = parseConstraints(userText);
+        if (tokens.length === 0 && !hasConstraints(constraints)) {
           return Promise.resolve([textItem("I didn't catch any ingredients in that. Try something like \"" + sampleIngredients().join(', ') + '".')]);
         }
-        return fetchLiveRecipes(tokens).then(function (live) {
+        return fetchLiveRecipes(tokens, constraints).then(function (live) {
           if (live && live.length) {
             var intro = live.length === 1 ? "Here's a recipe you can make:" : "Here are a few recipes you can make:";
             return [textItem(intro)].concat(recipeItemsFromLive(live));
           }
-          var results = findRecipes(tokens);
+          var results = findRecipes(tokens, constraints);
           if (results.length === 0) {
-            return [textItem(pick(NO_MATCH_INTRO) + ' Try other ingredients, like "' + sampleIngredients().join(', ') + '", or list a few more things you have.')];
+            var suggestion = constraints.maxTime
+              ? ' Try a longer time budget, or list a few ingredients you have.'
+              : ' Try other ingredients, like "' + sampleIngredients().join(', ') + '", or list a few more things you have.';
+            return [textItem(pick(NO_MATCH_INTRO) + suggestion)];
           }
           var intro2 = results.length === 1 ? "Here's a recipe you can make:" : "Here are a few recipes you can make:";
           return [textItem(intro2)].concat(recipeItemsFromLocal(results));

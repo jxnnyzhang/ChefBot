@@ -58,6 +58,13 @@ export default {
     edamamUrl.searchParams.set('app_id', env.EDAMAM_APP_ID);
     edamamUrl.searchParams.set('app_key', env.EDAMAM_APP_KEY);
 
+    // Optional total-time filter, e.g. "1-30" for "30 minutes or less".
+    // Validated so only a Edamam-shaped range/number can reach the upstream call.
+    const time = url.searchParams.get('time') || '';
+    if (/^\d{1,3}(-\d{1,3})?\+?$/.test(time)) {
+      edamamUrl.searchParams.set('time', time);
+    }
+
     // Some Edamam plans reject requests that include Edamam-Account-User at
     // all ("This app does not support users"), so only send it if explicitly
     // configured via the EDAMAM_ACCOUNT_USER secret.
