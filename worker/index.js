@@ -29,7 +29,29 @@ const SEARCH_CACHE_TTL = 6 * 60 * 60; // 6 hours
 const HOMEPAGE_CACHE_TTL = 24 * 60 * 60; // 1 day
 const EXTRACT_CACHE_TTL = 7 * 24 * 60 * 60; // 1 week
 
-const HOMEPAGE_QUERY_TERMS = ['dinner', 'chicken', 'pasta', 'salad', 'dessert', 'soup', 'breakfast', 'vegetarian', 'seafood', 'baking'];
+// Query specs rotated for the homepage pool. Mixes plain category terms with
+// Edamam's real `health` filter (vegetarian/vegan/pescatarian/kosher are all
+// genuine Edamam health labels) so the daily pool actually represents those
+// diets rather than hoping a generic search happens to surface them. Edamam
+// has no halal filter, so that one is a best-effort keyword search only.
+const HOMEPAGE_QUERY_SPECS = [
+  { q: 'dinner' },
+  { q: 'chicken' },
+  { q: 'pasta', health: 'vegetarian' },
+  { q: 'salad', health: 'vegan' },
+  { q: 'dessert' },
+  { q: 'soup', health: 'vegan' },
+  { q: 'breakfast', health: 'vegetarian' },
+  { q: 'seafood', health: 'pescatarian' },
+  { q: 'baking' },
+  { q: 'dinner', health: 'kosher' },
+  { q: 'noodles', health: 'vegan' },
+  { q: 'halal dinner' },
+  { q: 'grain bowl', health: 'vegetarian' },
+  { q: 'curry', health: 'pescatarian' },
+  { q: 'stew', health: 'kosher' },
+  { q: 'tacos' }
+];
 
 // "Editor's Picks" — a small tier of especially well-regarded food publishers.
 // Edamam has no publisher filter of its own, so this is matched client-side
@@ -69,9 +91,16 @@ function corsHeaders(origin) {
 }
 
 function json(body, status, origin) {
+  // The Worker has its own edge-cache layer (Cache API, per-endpoint TTLs
+  // above); the browser/CDN should never separately cache these responses,
+  // or a client could keep seeing a stale response after the Worker's own
+  // cache has already moved on (e.g. after a redeploy with a fix).
   return new Response(JSON.stringify(body), {
     status: status || 200,
-    headers: Object.assign({ 'Content-Type': 'application/json' }, corsHeaders(origin))
+    headers: Object.assign(
+      { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      corsHeaders(origin)
+    )
   });
 }
 
@@ -152,9 +181,11 @@ async function handleSearch(url, env, ctx, origin) {
 // ---------------------------------------------------------------------
 // Homepage trending + editor's picks (one shared Edamam call per day)
 // ---------------------------------------------------------------------
+const HOMEPAGE_TARGET_PER_TAB = 6;
+
 async function handleHomepage(env, ctx, origin) {
   const day = Math.floor(Date.now() / 86400000);
-  const cacheKeyUrl = new URL('https://chefbot-recipe-proxy.internal/homepage-v2');
+  const cacheKeyUrl = new URL('https://chefbot-recipe-proxy.internal/homepage-v5');
   cacheKeyUrl.searchParams.set('day', String(day));
   const cacheKey = new Request(cacheKeyUrl.toString());
   const cache = caches.default;
@@ -166,17 +197,23 @@ async function handleHomepage(env, ctx, origin) {
     return json({ error: 'Worker is not configured with Edamam credentials' }, 500, origin);
   }
 
-  // Pool a few different searches (rotating daily) so there's enough variety
-  // left after filtering down to reputable/prestige sources.
-  const n = HOMEPAGE_QUERY_TERMS.length;
-  const start = (day * 3) % n;
-  const terms = [HOMEPAGE_QUERY_TERMS[start], HOMEPAGE_QUERY_TERMS[(start + 1) % n], HOMEPAGE_QUERY_TERMS[(start + 2) % n]];
+  // Pool several different searches (rotating daily, mixing plain category
+  // terms with dietary health filters) so there's enough real variety left
+  // after filtering down to reputable/prestige sources. Picked with a stride
+  // (not consecutive slots) so a single day's pool spans different
+  // categories/diets instead of clustering around neighboring, similar
+  // entries in the list.
+  const n = HOMEPAGE_QUERY_SPECS.length;
+  const stride = 3; // coprime with n=16, so it cycles through everything
+  const start = day % n;
+  const specs = [0, 1, 2, 3, 4, 5].map((i) => HOMEPAGE_QUERY_SPECS[(start + i * stride) % n]);
 
   let hits = [];
-  for (const term of terms) {
+  for (const spec of specs) {
     const edamamUrl = new URL('https://api.edamam.com/api/recipes/v2');
     edamamUrl.searchParams.set('type', 'public');
-    edamamUrl.searchParams.set('q', term);
+    edamamUrl.searchParams.set('q', spec.q);
+    if (spec.health) edamamUrl.searchParams.set('health', spec.health);
     edamamUrl.searchParams.set('app_id', env.EDAMAM_APP_ID);
     edamamUrl.searchParams.set('app_key', env.EDAMAM_APP_KEY);
     try {
@@ -186,7 +223,7 @@ async function handleHomepage(env, ctx, origin) {
         hits = hits.concat(d.hits || []);
       }
     } catch (err) {
-      // skip this term, keep going with whatever else we got
+      // skip this spec, keep going with whatever else we got
     }
   }
 
@@ -204,13 +241,26 @@ async function handleHomepage(env, ctx, origin) {
     mapped.push({ name: r.label, image: r.image, url: r.url, source: r.source, time: r.totalTime });
   });
 
-  const editorsPicks = mapped.filter((r) => matchesSource(r.source, PRESTIGE_SOURCES)).slice(0, 3);
+  // Editor's Picks is chosen first and excluded from Trending so the same
+  // recipe never appears in both tabs. It's allowed to legitimately come up
+  // short (or empty) on a given day — no padding, no fudging the bar.
+  const editorsPicks = mapped.filter((r) => matchesSource(r.source, PRESTIGE_SOURCES)).slice(0, HOMEPAGE_TARGET_PER_TAB);
   const editorsUrls = new Set(editorsPicks.map((r) => r.url));
-  const trending = mapped
-    .filter((r) => matchesSource(r.source, REPUTABLE_SOURCES) && !editorsUrls.has(r.url))
-    .slice(0, 3);
 
-  const payload = { trending: trending, editorsPicks: editorsPicks, terms: terms };
+  // Trending prefers reputable sources first (keeps it looking professional/
+  // appetizing rather than random user-submitted results), but backfills
+  // from the wider pool if that leaves it short — an empty "Trending" tab is
+  // a worse outcome than a slightly less curated one.
+  let trending = mapped
+    .filter((r) => matchesSource(r.source, REPUTABLE_SOURCES) && !editorsUrls.has(r.url))
+    .slice(0, HOMEPAGE_TARGET_PER_TAB);
+  if (trending.length < HOMEPAGE_TARGET_PER_TAB) {
+    const usedUrls = new Set(trending.map((r) => r.url));
+    const backfill = mapped.filter((r) => !editorsUrls.has(r.url) && !usedUrls.has(r.url));
+    trending = trending.concat(backfill.slice(0, HOMEPAGE_TARGET_PER_TAB - trending.length));
+  }
+
+  const payload = { trending: trending, editorsPicks: editorsPicks, specs: specs };
 
   const toCache = new Response(JSON.stringify(payload), {
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=' + HOMEPAGE_CACHE_TTL }
